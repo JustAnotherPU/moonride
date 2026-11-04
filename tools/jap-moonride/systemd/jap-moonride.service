@@ -1,0 +1,43 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
+[Unit]
+Description=jap-moonride: Moonlight streaming daemon (pairing, launch, ctl socket for the app; spawns the decoder)
+RequiresMountsFor=/var/opt
+After=local-fs.target
+
+[Service]
+# nobody: mgu-render accepts frame files from the app uid, root or nobody (PROTOCOL.md "Video");
+# video = renderD128 for the MSDK, mgu_usb = usbfs for the 8BitDo pad; group tm_oap_app makes ctl.sock 0660 reachable by the app.
+User=nobody
+Group=tm_oap_app
+SupplementaryGroups=video mgu_usb mgu_alsa
+# '+' runs as root: the deploy tool installs everything 0:0, nobody needs its own state dir (pairing key 0600)
+ExecStartPre=-+/bin/sh -c 'mkdir -p /var/opt/jap-moonride/state && chown nobody:tm_oap_app /var/opt/jap-moonride/state && chmod 0700 /var/opt/jap-moonride/state'
+# the box art cache (moonlightd.js "covers"): written by nobody, read by the app through its group; on /var/opt,
+# not /run, so a reboot costs no decoding
+ExecStartPre=-+/bin/sh -c 'mkdir -p /var/opt/jap-moonride/covers && chown nobody:tm_oap_app /var/opt/jap-moonride/covers && chmod 0750 /var/opt/jap-moonride/covers'
+Environment=MGU_STATE=/var/opt/jap-moonride/state
+Environment=MGU_COVERS=/var/opt/jap-moonride/covers
+Environment=MGU_BIN=/var/opt/jap-moonride/current/mgu-moonlight
+Environment=MGU_CTL=/run/jap-moonride/ctl.sock
+Environment=MGU_BT=/run/jap-moonride/bt.sock
+Environment=MGU_DECODER=msdk
+# the jap-tailscale tool's SOCKS5 server (127.0.0.1 only): reaches the PC through your tailnet off the local network
+Environment=MGU_SOCKS_PORT=1065
+# the car's speakers through SmartX (the app routes the source with AudioManager); 64 ms = its 3 x 1024 frames
+Environment=MGU_AUDIO=alsa:plug:smartx:CarLifeMedia_CF_48_STEREO
+Environment=MGU_ALSA_US=64000
+ExecStart=/var/opt/jap-node22/current/bin/node /var/opt/jap-moonride/current/moonlightd.js
+RuntimeDirectory=jap-moonride
+# 0755 like mgu-yt: the socket itself is 0660, so only the app's group gets in
+RuntimeDirectoryMode=0755
+# Starts idle and stays active with no host, no app and no pad, so the deploy health check sees it active.
+Restart=on-failure
+# 3 s keeps clear of systemd's 5-starts-in-10-s limit.
+RestartSec=3
+# SIGTERM: the stream is stopped and the app quit on the host (4 s cap in moonlightd.js).
+TimeoutStopSec=6
+# 1, not 0: with a pipe core_pattern the kernel still pipes a core at limit 0 (mgu-yt's note).
+LimitCORE=1
+
+[Install]
+WantedBy=multi-user.target

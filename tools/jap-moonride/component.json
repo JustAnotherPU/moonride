@@ -1,0 +1,111 @@
+{
+  "id": "jap-moonride",
+  "kind": "tool",
+  "version": "0.3.0",
+  "license": "GPL-3.0-or-later",
+  "title": "Moonride streaming service",
+  "description": "Moonride's streaming service: moonlightd (Node 22) pairs with your PC (Sunshine / Apollo / Vibepollo), launches and quits its apps and serves /run/jap-moonride/ctl.sock to the Moonride app; mgu-moonlight decodes the stream with the MSDK into the mgu-render video layer and reads a USB XInput pad",
+  "requires": {
+    "mgu-deploy": "0.7.0",
+    "jap-node22": "22.23.4"
+  },
+  "uninstallable": true,
+  "internet": true,
+  "uids": [
+    65534
+  ],
+  "mguHmi": [
+    "ID7"
+  ],
+  "files": [
+    {
+      "path": "mgu-moonlight",
+      "from": "build/mgu-moonlight",
+      "mode": "0755"
+    },
+    {
+      "path": "moonlightd.js",
+      "from": "build/moonlightd.js",
+      "mode": "0644"
+    },
+    {
+      "path": "gs.js",
+      "from": "build/gs.js",
+      "mode": "0644"
+    },
+    {
+      "path": "png.js",
+      "from": "build/png.js",
+      "mode": "0644"
+    },
+    {
+      "path": "relay.js",
+      "from": "build/relay.js",
+      "mode": "0644"
+    },
+    {
+      "path": "check.sh",
+      "from": "check.sh",
+      "mode": "0755"
+    },
+    {
+      "path": "LICENSE",
+      "from": "build/LICENSE",
+      "mode": "0644"
+    },
+    {
+      "path": "licenses/moonlight-common-c.LICENSE.txt",
+      "from": "build/licenses/moonlight-common-c.LICENSE.txt",
+      "mode": "0644"
+    },
+    {
+      "path": "licenses/enet.LICENSE",
+      "from": "build/licenses/enet.LICENSE",
+      "mode": "0644"
+    },
+    {
+      "path": "licenses/nanors.LICENSE",
+      "from": "build/licenses/nanors.LICENSE",
+      "mode": "0644"
+    },
+    {
+      "path": "licenses/opus.COPYING",
+      "from": "build/licenses/opus.COPYING",
+      "mode": "0644"
+    },
+    {
+      "path": "licenses/mbedtls.LICENSE",
+      "from": "build/licenses/mbedtls.LICENSE",
+      "mode": "0644"
+    },
+    {
+      "path": "licenses/intel-mediasdk-headers.LICENSE",
+      "from": "build/licenses/intel-mediasdk-headers.LICENSE",
+      "mode": "0644"
+    }
+  ],
+  "check": [
+    "check.sh"
+  ],
+  "units": [
+    {
+      "name": "jap-moonride.service",
+      "from": "systemd/jap-moonride.service"
+    }
+  ],
+  "enable": [
+    {
+      "unit": "jap-moonride.service",
+      "target": "multi-user.target"
+    }
+  ],
+  "crashNames": [
+    "mgu-moonlight"
+  ],
+  "recmgr": [
+    "jap-moonride"
+  ],
+  "restart": [
+    "jap-moonride.service"
+  ]
+}

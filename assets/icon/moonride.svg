@@ -1,0 +1,76 @@
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 256 256" width="256" height="256">
+  <!-- Option 2 "Night Drive": a road running into a rising play-button sun, an Xbox-style gamepad in it; the sun centred on the road. -->
+  <defs>
+    <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#0a0f26"/>
+      <stop offset="0.6" stop-color="#1b1747"/>
+      <stop offset="0.62" stop-color="#05070c"/>
+      <stop offset="1" stop-color="#05070c"/>
+    </linearGradient>
+    <radialGradient id="haze" cx="0.5" cy="0.62" r="0.5">
+      <stop offset="0" stop-color="#ff3fa4" stop-opacity="0.55"/>
+      <stop offset="0.5" stop-color="#7a3cff" stop-opacity="0.18"/>
+      <stop offset="1" stop-color="#7a3cff" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="sun" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#ffd36b"/>
+      <stop offset="1" stop-color="#ff3f8e"/>
+    </linearGradient>
+    <linearGradient id="road" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#1a1d2c"/>
+      <stop offset="1" stop-color="#0d0f18"/>
+    </linearGradient>
+    <linearGradient id="edge" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#9cf0ff" stop-opacity="0.5"/>
+      <stop offset="1" stop-color="#3ad6ff"/>
+    </linearGradient>
+    <clipPath id="tile"><rect x="8" y="8" width="240" height="240" rx="54"/></clipPath>
+    <clipPath id="sunc"><path d="M98 84 Q98 70 110 77 L166 110 Q176 116 166 122 L110 155 Q98 162 98 148 Z"/></clipPath>
+    <clipPath id="above"><rect x="0" y="0" width="256" height="158"/></clipPath>
+  </defs>
+  <rect x="8" y="8" width="240" height="240" rx="54" fill="url(#sky)"/>
+  <g clip-path="url(#tile)">
+    <rect x="0" y="40" width="256" height="200" fill="url(#haze)"/>
+    <!-- stars -->
+    <g fill="#cfe2ff">
+      <circle cx="52" cy="50" r="1.6" opacity="0.8"/>
+      <circle cx="88" cy="34" r="1.1" opacity="0.6"/>
+      <circle cx="122" cy="62" r="1.2" opacity="0.5"/>
+      <circle cx="40" cy="96" r="1.0" opacity="0.5"/>
+      <circle cx="222" cy="104" r="1.2" opacity="0.6"/>
+    </g>
+    <!-- play-button sun rising on the horizon, with horizon cut lines -->
+    <g clip-path="url(#above)"><g transform="translate(-6.5 26)">
+      <path d="M98 84 Q98 70 110 77 L166 110 Q176 116 166 122 L110 155 Q98 162 98 148 Z" fill="url(#sun)"/>
+      <g clip-path="url(#sunc)">
+      <rect x="90" y="128" width="90" height="3" fill="#1b1747"/>
+      <rect x="90" y="137" width="90" height="4" fill="#1b1747"/>
+      <rect x="90" y="147" width="90" height="5" fill="#1b1747"/>
+      </g>
+      <!-- an Xbox-style gamepad in the sun (offset sticks, ABXY diamond; no logo) -->
+      <g transform="translate(127 114) scale(0.92)">
+        <path d="M-13 -10 Q-7 -12.5 0 -10.5 Q7 -12.5 13 -10 Q19.5 -9 21.5 -3 L24.5 8 Q26 14.5 20 15 Q16.5 15.3 14 10.5 L11.5 6.5 Q0 4.5 -11.5 6.5 L-14 10.5 Q-16.5 15.3 -20 15 Q-26 14.5 -24.5 8 L-21.5 -3 Q-19.5 -9 -13 -10 Z" fill="#1b1747"/>
+        <g fill="#ffd36b">
+          <circle cx="-12.5" cy="-3" r="3.2"/>
+          <circle cx="6" cy="4" r="2.8"/>
+          <path d="M-6.8 2.6 H-5.2 V1 H-3.6 V2.6 H-2 V4.2 H-3.6 V5.8 H-5.2 V4.2 H-6.8 Z"/>
+          <circle cx="13" cy="-6.2" r="1.5"/><circle cx="9.8" cy="-3" r="1.5"/><circle cx="16.2" cy="-3" r="1.5"/><circle cx="13" cy="0.2" r="1.5"/>
+          <circle cx="0" cy="-5.5" r="2.1"/>
+        </g>
+      </g>
+    </g></g>
+    <!-- horizon line -->
+    <rect x="0" y="157" width="256" height="2" fill="#ff5fae" opacity="0.8"/>
+    <!-- road -->
+    <path d="M118 159 L138 159 L236 256 L20 256 Z" fill="url(#road)"/>
+    <path d="M118 159 L30 256" stroke="url(#edge)" stroke-width="5" fill="none"/>
+    <path d="M138 159 L226 256" stroke="url(#edge)" stroke-width="5" fill="none"/>
+    <!-- centre dashes -->
+    <g fill="#ffffff">
+      <path d="M127 166 L129 166 L129.6 174 L126.4 174 Z" opacity="0.6"/>
+      <path d="M126 184 L130 184 L131.2 198 L124.8 198 Z" opacity="0.8"/>
+      <path d="M124.4 213 L131.6 213 L133.6 236 L122.4 236 Z"/>
+    </g>
+  </g>
+  <rect x="8.75" y="8.75" width="238.5" height="238.5" rx="53.25" fill="none" stroke="#ffffff" stroke-opacity="0.08" stroke-width="1.5"/>
+</svg>
