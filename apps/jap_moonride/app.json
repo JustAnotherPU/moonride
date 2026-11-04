@@ -2,7 +2,7 @@
   "id": "jap_moonride",
   "title": "Moonride",
   "description": "Moonride: Moonlight game streaming from your PC (Sunshine / Apollo / Vibepollo) on the whole screen, parked only by default. Pairing, app list, Start / Stop; the stream is decoded by the mgu-moonlight tool and drawn by mgu-render",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "vendor": "custom",
   "license": "GPL-3.0-or-later",
   "loggingId": "MOON",

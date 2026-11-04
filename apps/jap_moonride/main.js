@@ -249,7 +249,7 @@ mgu.run({
             riskCancel: () => { st.risk = false; refresh(); },
             tslogin: () => { st.tsSheet = !!st.tsUrl && !st.tsSheet; refresh(); },
             start: (a) => {
-                if (driving()) { st.error = 'Stationné uniquement : démarrage refusé tant que la voiture roule'; return refresh(); }
+                if (driving()) { st.error = parked.speed() === null ? 'Stationné uniquement : vitesse du véhicule illisible, démarrage refusé' : 'Stationné uniquement : démarrage refusé tant que la voiture roule'; return refresh(); }
                 if (live()) { st.error = 'Un stream tourne déjà : arrête-le d\'abord'; return refresh(); }
                 const r = String(settings.get('res') || '1920x720').split('x').map(Number);
                 st.error = null;
@@ -396,7 +396,7 @@ mgu.run({
             const m = {
                 mode, menu, st, pads, focus, first, padSy, ring: !cv.own, chrome: !!cv.chrome, extra: cv.own ? cv.extra : 0, host: hostIp(),
                 res: String(settings.get('res') || '1920x720').replace('x', ' × ') + ' · 60 i/s', parkedOnly: settings.get('parkedOnly') === true,
-                driving: driving(), now: Date.now(), live: live() && !ui.isVisible('GAME'), padRows: mode === 'pads' ? padRows() : [], pic: picture, act,
+                driving: driving(), noSpeed: parked.speed() === null, now: Date.now(), live: live() && !ui.isVisible('GAME'), padRows: mode === 'pads' ? padRows() : [], pic: picture, act,
             };
             view.draw(cv, m);
             extra = m.extra;                // (the row's size depends on it: how many cards show)

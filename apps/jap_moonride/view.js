@@ -268,7 +268,7 @@ function footer(cv, m) {
     let x = 40;
     // the chips only with the menu open (or while it refuses to start: the car moves)
     if (m.parkedOnly && (m.menu || m.driving)) {
-        x = chip(cv, x, m.driving ? 'Stationné uniquement : en attente de l\'arrêt' : 'Stationné uniquement', (cx, cy) => {
+        x = chip(cv, x, !m.driving ? 'Stationné uniquement' : m.noSpeed ? 'Stationné uniquement : vitesse illisible, démarrage bloqué' : 'Stationné uniquement : en attente de l\'arrêt', (cx, cy) => {
             cv.roundRect(cx - 9, cy - 9, 18, 18, 4, m.driving ? C.orange : '#ffffffd0');
             cv.text('P', cx, cy + 6, 16, '#111318', { literal: true, font: 'bold', align: 'center' });
         }, m.driving ? C.orange : null);

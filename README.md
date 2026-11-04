@@ -1,6 +1,8 @@
 # Moonride
 
-**Use at your own risk. Moonride is an independent project, not affiliated with or endorsed by BMW.**
+**Use at your own risk. Moonride is an independent project, not affiliated with or endorsed by BMW, Moonlight,
+NVIDIA, LizardByte (Sunshine), Apollo, Vibepollo or Tailscale; their names are their owners' trademarks and are
+used only to say what Moonride works with.** By default it streams only while the car is parked.
 
 Moonlight game streaming for the BMW iDrive 7 head unit (MGU). Moonride streams games or the desktop from your
 PC to the car's centre screen at 1920 x 720, 60 fps, with the sound on the car's speakers. You play with a USB
@@ -119,14 +121,40 @@ connections are refused, and a tailnet policy example for the car's Moonlight po
   every app on the head unit (they all share that group), not to Moonride alone: an installed app could pair,
   start a stream or send input. Install only apps you trust.
 
+## Tested on
+
+| | |
+|---|---|
+| Car | BMW X5 xDrive45e (G05), iDrive 7 (MGU, ID7 HMI), firmware P18_23w44.2-1-3 |
+| Renderer | mgu-render 0.6.12 |
+| Host | Vibepollo on Windows 11, with a virtual display at the client's resolution |
+| Pad | 8BitDo USB adapter in X-input mode |
+
+With plain Sunshine, give the host a 1920 x 720 (or 1280 x 720) display mode, or a virtual display at that size:
+Moonride asks for that size and does not change the host's display, so a 16:9 desktop comes out stretched or
+letterboxed. Reports from other cars and hosts are welcome in the issues.
+
 ## Known limits
 
-- iDrive 7 (ID7) only. It was tested on one car, a BMW with iDrive 7 (MGU).
+- iDrive 7 (ID7) only, tested on one car (above).
+- The stream starts only once the car reports its speed. If your car or firmware does not give Moonride the
+  vehicle speed, the page says the speed is unreadable and streaming stays blocked.
+- If Moonride is killed in the middle of a stream, the iDrive touchpad can stay in its handwriting (mouse)
+  mode. Open Moonride once, or any text field on the car, to clear it.
+- The video is not encrypted on the network (the sound is), as in Moonlight on a LAN. Over Tailscale the whole
+  link is encrypted.
 - The stream is decoded in hardware (Intel Media SDK). 1920 x 720 at 60 fps is the target. A weak Wi-Fi or mobile
   link shows up as dropped frames: lower the bitrate.
 - Popups and the reversing camera cover the stream. The head unit's own shortcuts still work.
 - One stream and one pad at a time. No Bluetooth pads, no microphone.
 - The texts on the car screen are in French.
+
+## Uninstall
+
+1. In the MGU Store, uninstall **Moonride**, then the **Moonride streaming service** (`jap-moonride`). Node.js 22
+   and Tailscale stay installed for other apps; remove them too if nothing else uses them.
+2. On the PC, open the host's web UI and remove the car from its paired clients, so the pairing key left on the
+   head unit is no longer accepted.
 
 ## Repository layout
 
