@@ -11,6 +11,20 @@ gamepad, the touchscreen or the iDrive controller.
 It is installed from the MGU Store. Nothing in it is tied to one car, PC or network: you pair it with your own PC
 the first time you open it.
 
+![Home page: the PC's apps as cards, the menu open](docs/media/home.png)
+*Home: the PC's apps as cards (the iDrive controller is on one), with the "•••" menu open.*
+
+![Pairing: the PIN to enter on the PC](docs/media/pairing.png)
+*Pairing: enter the PIN in the host's web UI.*
+
+![Gamepads page with the button test](docs/media/gamepads.png)
+*Gamepads: the USB pad and a live button test.*
+
+![Launching a game](docs/media/launching.png)
+*Launching: shown until the stream's first picture.*
+
+The screenshots use demo data (a made-up PC and games, no box art).
+
 ## What you need
 
 - An iDrive 7 car (MGU, ID7 HMI) with the [MGU Store](https://github.com/robertnisipeanu/mgu-store) installed.
@@ -37,7 +51,7 @@ the first time you open it.
 
 1. Open Moonride, then **•••** › **Settings**. Set **Host IP** (four numbers) to your PC's address, for
    example its LAN address (such as `192.0.2.20`), or its Tailscale address `100.x.y.z`. There is no default.
-2. Back on the home page, press **Jumeler** (Pair). A four-digit PIN appears on the car screen.
+2. Back on the home page, press **Pair**. A four-digit PIN appears on the car screen.
 3. On the PC, open the host's web UI (`https://<pc>:47990`), go to **PIN** and enter the code.
 4. The PC's apps appear as cards. Pick one with the touchscreen or the iDrive controller to start it.
    BACK, or leaving the game screen, ends the stream and quits the app on the PC.
@@ -55,8 +69,6 @@ The pairing is kept on the head unit (`/var/opt/jap-moonride/state`, readable by
 | Sound | The car's speakers, or muted. |
 | Performance statistics | Moonlight's overlay over the game. In a game, hold the iDrive controller pressed for 3 s to toggle it. |
 | Host IP | Your PC's IPv4 address. |
-
-The app's own texts are in French for now.
 
 ## Driving
 
@@ -102,7 +114,7 @@ stream through that proxy.
 
 1. Give the car internet through mgu-uplink (a phone hotspot, an LTE stick, ...).
 2. Install **Tailscale** from the `JustAnotherPU/mgu-apps:releases` source.
-3. In Moonride, open **•••**. A **Tailscale : se connecter** chip appears while the tool is waiting for a login.
+3. In Moonride, open **•••**. A **Tailscale: sign in** chip appears while the tool is waiting for a login.
    Tap it and scan the QR code with a phone that is signed in to your Tailscale account, then approve the device
    (`idrive`).
 4. Make the PC reachable on the tailnet: either install Tailscale on the PC and set **Host IP** to its `100.x`
@@ -147,7 +159,6 @@ letterboxed. Reports from other cars and hosts are welcome in the issues.
   link shows up as dropped frames: lower the bitrate.
 - Popups and the reversing camera cover the stream. The head unit's own shortcuts still work.
 - One stream and one pad at a time. No Bluetooth pads, no microphone.
-- The texts on the car screen are in French.
 
 ## Uninstall
 

@@ -2,7 +2,7 @@
   "id": "jap_moonride",
   "title": "Moonride",
   "description": "Moonride: Moonlight game streaming from your PC (Sunshine / Apollo / Vibepollo) on the whole screen, parked only by default. Pairing, app list, Start / Stop; the stream is decoded by the mgu-moonlight tool and drawn by mgu-render",
-  "version": "0.3.2",
+  "version": "0.3.3",
   "vendor": "custom",
   "license": "GPL-3.0-or-later",
   "loggingId": "MOON",
@@ -38,9 +38,9 @@
       "hmi": false,
       "fill": true,
       "buttons": [
-        ["BTN_NEXT", "Suivant"],
-        ["BTN_OK", "Ouvrir"],
-        ["BTN_PADS", "Manettes"],
+        ["BTN_NEXT", "Next"],
+        ["BTN_OK", "Open"],
+        ["BTN_PADS", "Gamepads"],
         ["BTN_SETTINGS", "Settings"]
       ]
     },
@@ -54,7 +54,7 @@
   "settings": [
     {
       "key": "resume",
-      "label": "Resume the game after a lost connection or a switch to another app (the game stays open on the PC; Back or Quitter ends it)",
+      "label": "Resume the game after a lost connection or a switch to another app (the game stays open on the PC; Back or Quit ends it)",
       "type": "bool",
       "default": true
     },
@@ -66,7 +66,7 @@
     },
     {
       "key": "stats",
-      "label": "Statistiques de performance (sur le jeu ; en jeu : contrôleur enfoncé 3 s)",
+      "label": "Performance statistics (over the game; in a game: hold the controller pressed for 3 s)",
       "type": "bool",
       "default": false
     },
@@ -108,17 +108,17 @@
     },
     {
       "key": "audio",
-      "label": "Son",
+      "label": "Sound",
       "type": "choice",
       "default": "car",
       "options": [
         [
           "car",
-          "Haut-parleurs de la voiture"
+          "Car speakers"
         ],
         [
           "off",
-          "Muet"
+          "Muted"
         ]
       ]
     },

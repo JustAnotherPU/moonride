@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.3.3
+
+- The app is now in English: the home page, the gamepads page, the pairing, Tailscale and loading screens, the
+  messages, the settings and the bar buttons. The statistics overlay writes decimals with a point.
+- The gamepads page no longer cuts off the top of its first heading.
+- README: screenshots of the app.
+
 ## 0.3.2
 
 - A lost connection no longer closes the game on the PC. Moonride keeps retrying the link for 10 minutes and resumes

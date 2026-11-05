@@ -7,19 +7,19 @@
  * Screens:
  *   MAIN  drawn (view.js), two pages:
  *           home  title, the host's status (green: name + RTT, orange: pairing, grey: not paired / PC not
- *                 found), "•••" (opens Manettes, Settings and the hints; 15 s, or a card focused, closes it); the host's apps as big cards (tap or press = start), then
- *                 Actualiser (applist) and Jumeler (pair with host1..4); Stop while a stream starts or stops.
+ *                 found), "•••" (opens Gamepads, Quit, Settings and the hints; 15 s, or a card focused, closes it); the host's apps as big cards (tap or press = start), then
+ *                 Refresh (applist) and Pair (pair with host1..4); Stop while a stream starts or stops.
  *                 A card shows the app's box art once the daemon has it ({"ev":"cover"}: raw RGBA in its cache dir),
  *                 read when the card is first drawn, from a few picture ids reused (least recently drawn).
  *                 While pairing, the PIN sheet over it (the code and https://<host>:47990/pin).
- *           pads  "Manettes": the 8BitDo USB adapter (the main case: it sends no state, so none is shown),
+ *           pads  "Gamepads": the 8BitDo USB adapter (the main case: it sends no state, so none is shown),
  *                 the pads the Bluetooth helper knows (battery %; tap twice = forget) and, with the helper,
  *                 its dongle, scan on / off and the devices found (tap = pair). Close, or the controller
  *                 pushed left, goes back home.
  *         Where the kit runs the screen (mgu-render/1 with touch: display.js) the page's targets take taps and
  *         the iDrive controller (turn = next card, push = nearest that way, press = run it; the kit rings the
  *         one it is on and tells us, ctx.onPageFocus, so the row scrolls it into view). Elsewhere (the HMI shows
- *         the page as a PNG) the bar's buttons do it: Suivant / Ouvrir, Manettes, Settings.
+ *         the page as a PNG) the bar's buttons do it: Next / Open, Gamepads, Settings.
  *         Settings (host1..4 = the host's IPv4, resolution, bitrate, parkedOnly): the kit's (its sheet over the
  *         page, or the HMI's settings screen), from the round button or the header's Settings tab.
  *   GAME  the stream on the whole screen: the app's own mgu-render connection (mgu_render_client.js, native
@@ -54,7 +54,7 @@ const MENU_MS = 15000;               // the "•••" menu closes by itself af
 // bar buttons: where the kit runs the screen the page has their jobs (hidden there)
 const BAR = ['BTN_NEXT', 'BTN_OK', 'BTN_PADS'];
 
-const QUIT_WAIT_MS = 4000;           // "Quitter": how long the stream's end may take before MainApp is asked anyway
+const QUIT_WAIT_MS = 4000;           // "Quit": how long the stream's end may take before MainApp is asked anyway
 // MainApp's AppRuntime_ff (joynr 1.1, domain VIN-<vin>): stopApp stops an app the way MainApp stops an unused one
 // (its shutdown event: the kit's clean exit; an exit of our own counts as a crash). permissions.json allows it (app.json).
 function RuntimeProxy(s) {
@@ -117,7 +117,7 @@ mgu.run({
                 }
                 if ('parked' in m) {
                     if (m.state === 'launching' && !st.launch && st.parked) {   // the daemon resumes after a lost link
-                        const a = st.apps.find((x) => x.id === st.parked.app) || { id: st.parked.app, title: 'Reprise' };
+                        const a = st.apps.find((x) => x.id === st.parked.app) || { id: st.parked.app, title: 'Resume' };
                         st.launch = { app: a, t: Date.now() };
                     }
                     st.parked = m.parked;
@@ -145,7 +145,7 @@ mgu.run({
                 if (m.cmd === 'pads') { pads.note = m.msg; } else {
                     st.error = m.msg;
                     if (m.cmd === 'pair') st.pin = null;
-                    if (m.cmd === 'applist') st.offline = true;      // the host did not answer: "PC introuvable"
+                    if (m.cmd === 'applist') st.offline = true;      // the host did not answer: "PC not found"
                 }
             }
             refresh();
@@ -251,13 +251,13 @@ mgu.run({
         let mode = 'home', menu = false, menuTimer = null, focus = null, first = 0, padSy = 0, dirty = true, padsLabel = null;
         function refresh() {
             dirty = true;
-            const l = mode === 'pads' ? 'Accueil' : 'Manettes';       // (the HMI's bar: told only on a change)
+            const l = mode === 'pads' ? 'Home' : 'Gamepads';       // (the HMI's bar: told only on a change)
             if (l !== padsLabel) { padsLabel = l; ui.text('BTN_PADS', l); }
         }
         const act = {
             riskAccept: () => {
                 st.risk = false;
-                if (parked.moving()) { st.error = 'Stationné uniquement : réglage impossible tant que la voiture roule'; return refresh(); }
+                if (parked.moving()) { st.error = 'Parked only: this cannot be changed while the car is moving'; return refresh(); }
                 settings.set(ACCEPTED, true);
                 settings.set('parkedOnly', false);
                 log.warn('parkedOnly off: the owner accepted the disclaimer');
@@ -266,8 +266,8 @@ mgu.run({
             riskCancel: () => { st.risk = false; refresh(); },
             tslogin: () => { st.tsSheet = !!st.tsUrl && !st.tsSheet; refresh(); },
             start: (a) => {
-                if (driving()) { st.error = parked.speed() === null ? 'Stationné uniquement : vitesse du véhicule illisible, démarrage refusé' : 'Stationné uniquement : démarrage refusé tant que la voiture roule'; return refresh(); }
-                if (live()) { st.error = 'Un stream tourne déjà : arrête-le d\'abord'; return refresh(); }
+                if (driving()) { st.error = parked.speed() === null ? 'Parked only: vehicle speed unreadable, start refused' : 'Parked only: start refused while the car is moving'; return refresh(); }
+                if (live()) { st.error = 'A stream is already running: stop it first'; return refresh(); }
                 const r = String(settings.get('res') || '1920x720').split('x').map(Number);
                 st.error = null;
                 st.launch = { app: a, t: Date.now() };   // the loading page until the stream shows (or it fails)
@@ -278,9 +278,9 @@ mgu.run({
             },
             pair: () => {
                 const h = hostIp();
-                if (!st.up) { st.error = 'L\'outil jap-moonride ne tourne pas'; return refresh(); }
+                if (!st.up) { st.error = 'The jap-moonride service is not running'; return refresh(); }
                 // no default host: the owner sets the PC's address in Settings first
-                if (h === '0.0.0.0') { st.error = 'Règle d\'abord l\'adresse IP du PC dans les réglages (Host IP)'; return refresh(); }
+                if (h === '0.0.0.0') { st.error = 'First set your PC\'s address in Settings (Host IP)'; return refresh(); }
                 st.error = null; st.pin = null; st.apps = []; st.offline = false; first = 0;
                 ctl.send({ cmd: 'pair', host: h });
                 log.info('pair ' + h);
@@ -301,7 +301,7 @@ mgu.run({
                 refresh();
             },
             pad: (r) => {
-                if (r.op === 'pair') { padsCmd({ op: 'pair', addr: r.addr }); pads.note = 'Association en cours (bouton d\'association de la manette)'; } else if (pads.armed !== r.addr) {
+                if (r.op === 'pair') { padsCmd({ op: 'pair', addr: r.addr }); pads.note = 'Pairing… (press the gamepad\'s pairing button)'; } else if (pads.armed !== r.addr) {
                     pads.armed = r.addr;
                     setTimeout(() => { if (pads.armed === r.addr) { pads.armed = null; refresh(); } }, FORGET_MS);
                 } else {
@@ -323,8 +323,8 @@ mgu.run({
                 if (e.idx != null) pads.conn.set(e.idx, { addr: e.addr, name: e.name || '' });
                 if (e.addr) pads.bonded.set(e.addr, e.transport || '');
             } else if (e.ev === 'disconnected') { pads.conn.delete(e.idx); delete pads.battery[e.idx]; } else if (e.ev === 'battery') pads.battery[e.idx] = e.pct;
-            else if (e.ev === 'paired') { pads.note = 'Manette associée'; if (e.addr) { pads.bonded.set(e.addr, ''); pads.found.delete(e.addr); } } else if (e.ev === 'list_end') pads.note = '';
-            else if (e.ev === 'error') pads.note = (e.cmd ? e.cmd + ' : ' : '') + e.msg;
+            else if (e.ev === 'paired') { pads.note = 'Gamepad paired'; if (e.addr) { pads.bonded.set(e.addr, ''); pads.found.delete(e.addr); } } else if (e.ev === 'list_end') pads.note = '';
+            else if (e.ev === 'error') pads.note = (e.cmd ? e.cmd + ': ' : '') + e.msg;
         }
         // rows: the pads we know first (bonded or connected: tap twice = forget), then the scan's finds (tap = pair)
         function padRows() {
@@ -335,9 +335,9 @@ mgu.run({
             pads.conn.forEach((c) => { if (known.indexOf(c.addr) < 0) known.push(c.addr); });
             const rows = known.map((addr) => {
                 const c = byAddr[addr], f = pads.found.get(addr), pct = c ? pads.battery[c.idx] : null;
-                return { op: 'forget', addr, name: (c && c.name) || (f && f.name) || 'Manette', conn: !!c, pct: pct != null ? pct : null };
+                return { op: 'forget', addr, name: (c && c.name) || (f && f.name) || 'Gamepad', conn: !!c, pct: pct != null ? pct : null };
             });
-            pads.found.forEach((f, addr) => { if (known.indexOf(addr) < 0) rows.push({ op: 'pair', addr, name: f.name || 'appareil' }); });
+            pads.found.forEach((f, addr) => { if (known.indexOf(addr) < 0) rows.push({ op: 'pair', addr, name: f.name || 'device' }); });
             return rows.slice(0, MAX_PADS);
         }
         const padsCmd = (o) => { pads.note = ''; ctl.send(Object.assign({ cmd: 'pads' }, o)); };
@@ -359,7 +359,7 @@ mgu.run({
                 if (a) act.start(a); else if (focus === 'refresh') act.refresh(); else if (focus === 'pair') act.pair();
             } else if (hit(0x2000) && menu) openMenu(false);
         }
-        // the "•••" menu (Manettes, Settings, the hints): closed, the page is the covers alone
+        // the "•••" menu (Gamepads, Quit, Settings, the hints): closed, the page is the covers alone
         function openMenu(on) {
             clearTimeout(menuTimer);
             menu = on;
@@ -413,7 +413,7 @@ mgu.run({
             const cv = ctx.canvas(view.W, view.H);
             const m = {
                 mode, menu, st, pads, focus, first, padSy, ring: !cv.own, chrome: !!cv.chrome, extra: cv.own ? cv.extra : 0, host: hostIp(),
-                res: String(settings.get('res') || '1920x720').replace('x', ' × ') + ' · 60 i/s', parkedOnly: settings.get('parkedOnly') === true,
+                res: String(settings.get('res') || '1920x720').replace('x', ' × ') + ' · 60 fps', parkedOnly: settings.get('parkedOnly') === true,
                 driving: driving(), noSpeed: parked.speed() === null, now: Date.now(), live: live() && !ui.isVisible('GAME'), padRows: mode === 'pads' ? padRows() : [], pic: picture, act,
             };
             view.draw(cv, m);
@@ -454,7 +454,7 @@ mgu.run({
         if (ctx.onBack) ctx.onBack(safe('back', () => { if (mode !== 'pads') return false; showPads(false); return true; }));
         if (ctx.onLayout) ctx.onLayout(() => { dirty = true; });
         if (ctx.hideButton) BAR.forEach((b) => ctx.hideButton(b, true));
-        // the HMI's bar (where the page can't be touched): Suivant moves along the targets, Ouvrir runs one
+        // the HMI's bar (where the page can't be touched): Next moves along the targets, Open runs one
         ui.onClick('BTN_NEXT', safe('next', () => {
             if (!targets.length) return;
             const i = targets.findIndex((t) => t.key === focus);
@@ -560,14 +560,14 @@ mgu.run({
         // a crash or kill leaves touch mode on until the HMI's next speller or the app's next start (above)
         if (ctx.app && ctx.app.on) ctx.app.on('shutdown', safe('shutdown', () => { if (ccu.on || ccu.restore) touchMode(false); carAudio(false); }));
 
-        // "Quitter": the game ends on the PC (no park), then MainApp stops the app now (not once two other apps are hidden)
+        // "Quit": the game ends on the PC (no park), then MainApp stops the app now (not once two other apps are hidden)
         let quitting = false;
         async function quitApp() {
             if (quitting) return;
             quitting = true;
             openMenu(false);
             st.error = null; refresh();
-            if (live() || st.parked) { stopT = 0; stop('Quitter', false); }   // (past the 2 s guard: a park just sent is undone)
+            if (live() || st.parked) { stopT = 0; stop('Quit', false); }   // (past the 2 s guard: a park just sent is undone)
             // our socket closing mid-stop would make the daemon park the game: wait for its end
             for (const end = Date.now() + QUIT_WAIT_MS; (st.state !== 'idle' || st.parked) && Date.now() < end;) await new Promise((r) => setTimeout(r, 100));
             const app = ctx.app;
@@ -582,7 +582,7 @@ mgu.run({
             } catch (e) {
                 log.warn('quit: ' + e);
                 quitting = false;
-                st.error = 'Fermeture refusée par l\'iDrive : l\'app sera arrêtée après deux autres apps';
+                st.error = 'The iDrive refused to close the app: it will stop once two other apps were opened';
                 refresh();
             }
         }
@@ -607,7 +607,7 @@ mgu.run({
             if (away && appVis) {
                 away = false;
                 if (st.parked && st.state === 'idle') {
-                    const a = st.apps.find((x) => x.id === st.parked.app) || { id: st.parked.app, title: 'Reprise' };
+                    const a = st.apps.find((x) => x.id === st.parked.app) || { id: st.parked.app, title: 'Resume' };
                     st.launch = { app: a, t: Date.now() };
                     keys.wheel = view.isDesktop(a);
                     log.info('back in Moonride: resume ' + a.id);

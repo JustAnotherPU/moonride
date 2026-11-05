@@ -109,7 +109,7 @@ const speed = (kmh) => {
 };
 
 const hooks = {};
-// MainApp's joynr: the stopApp calls the "Quitter" makes
+// MainApp's joynr: the stopApp calls the "Quit" makes
 const stops = [];
 process.env.VIN = 'WBATEST0000000000';
 const app = Object.assign(new EventEmitter(), {
@@ -143,7 +143,7 @@ Module._load = function (req) {
     d.send({ ev: 'apps', apps: [{ id: 11, title: 'Desktop' }, { id: 22, title: 'Steam Big Picture' }] });
     await until(() => says(/^Steam Big$/) && says(/^Picture$/), 'app cards (titles in two lines)');
     assert.deepStrictEqual(keys().filter((k) => /^app:/.test(k)), ['app:22'], 'one card per game, Desktop not among them');
-    assert(keys().indexOf('desktop') >= 0 && says(/^Bureau$/), 'Desktop as the bubble');
+    assert(keys().indexOf('desktop') >= 0 && says(/^Desktop$/), 'Desktop as the bubble');
 
     // parkedOnly on by default (public build)
     assert.strictEqual(settings.get('parkedOnly'), true, 'off without an acceptance on record: back on at start');
@@ -151,7 +151,7 @@ Module._load = function (req) {
     tap('desktop');
     await sleep(100);
     assert.strictEqual(d.cmds('start').length, 0, 'start refused with no speed');
-    assert.ok(says(/refusé/), 'says why: ' + draw().said.join(' | '));
+    assert.ok(says(/refused/), 'says why: ' + draw().said.join(' | '));
     // parkedOnly cannot be turned off while moving
     settings.set('parkedOnly', false);
     assert.strictEqual(values.parkedOnly, true, 'parkedOnly back on while moving');
@@ -160,7 +160,7 @@ Module._load = function (req) {
     tap('pair');
     await sleep(100);
     assert.strictEqual(d.cmds('pair').length, 0, 'no pair without a host');
-    assert.ok(says(/adresse IP du PC/), 'says to set the host: ' + draw().said.join(' | '));
+    assert.ok(says(/PC's address/), 'says to set the host: ' + draw().said.join(' | '));
     [192, 0, 2, 10].forEach((n, i) => settings.set('host' + (i + 1), n));
     // pairing: the host from host1..4, then the PIN line
     tap('pair');
@@ -174,7 +174,7 @@ Module._load = function (req) {
     await until(() => !says(/47990/), 'PIN sheet gone');
     await until(() => d.cmds('applist').length === 2, 'applist after paired');
     d.send({ ev: 'apps', apps: [{ id: 11, title: 'Desktop' }, { id: 22, title: 'Steam Big Picture' }, { id: 33, title: 'Among Us' }] });
-    await until(() => says(/^Bureau$/) && says(/^MYPC/), 'app cards again, the host by name');
+    await until(() => says(/^Desktop$/) && says(/^MYPC/), 'app cards again, the host by name');
 
     // covers: a cover event -> that card drawn with the picture (the file's pixels); a short file -> the gradient, no error
     assert.deepStrictEqual(draw().images, [], 'no cover yet');
@@ -262,9 +262,9 @@ Module._load = function (req) {
     await until(() => r.types(7).length > nf1 && lastFrame().length > 36, 'a frame with the overlay');
     assert.ok(r.types(4).length >= 1, 'glyph atlas sent');
     assert.strictEqual(lastFrame().readUInt32LE(8), 19, 'video op first, the overlay over it');
-    assert.ok(gameSays(/^1920 × 720 · 60 fps · H\.264 · 8,4 Mbps$/), 'stream line: ' + (gameCv.said || []).join(' | '));
-    assert.ok(gameSays(/^58 \/ 57 fps$/) && gameSays(/^3,3 %$/) && gameSays(/^1,7 % \/ 0,0 %$/), 'frame rates, network drops 2 / 60, skipped 1 / 58');
-    assert.ok(gameSays(/^3 ± 1 ms$/) && gameSays(/^4,1 ms  \(max 6,0\)$/) && gameSays(/^8,9 ms  \(max 14,0\)$/), 'RTT, host, total');
+    assert.ok(gameSays(/^1920 × 720 · 60 fps · H\.264 · 8\.4 Mbps$/), 'stream line: ' + (gameCv.said || []).join(' | '));
+    assert.ok(gameSays(/^58 \/ 57 fps$/) && gameSays(/^3\.3 %$/) && gameSays(/^1\.7 % \/ 0\.0 %$/), 'frame rates, network drops 2 / 60, skipped 1 / 58');
+    assert.ok(gameSays(/^3 ± 1 ms$/) && gameSays(/^4\.1 ms  \(max 6\.0\)$/) && gameSays(/^8\.9 ms  \(max 14\.0\)$/), 'RTT, host, total');
     // a new stats line: recorded again; between two lines the keepalive sends the same frame
     d.send(Object.assign({}, STATS, { rtt: 9 }));
     await until(() => gameSays(/^9 ± 1 ms$/), 'overlay follows the stats');
@@ -358,19 +358,19 @@ Module._load = function (req) {
     await until(() => d.cmds('stop').length === 5 && d.cmds('stop')[4].keep === false, 'BACK after the resume quits');
     d.send({ ev: 'state', state: 'idle', parked: null });
 
-    // the "•••" menu: closed, the covers alone (no Manettes / Settings); open, both
+    // the "•••" menu: closed, the covers alone (no Gamepads / Settings); open, both
     assert.ok(keys().indexOf('pads') < 0 && keys().indexOf('settings') < 0 && keys().indexOf('menu') >= 0, 'menu closed: ' + keys().join(' '));
     tap('menu');
     assert.ok(keys().indexOf('pads') >= 0 && keys().indexOf('settings') >= 0 && keys().indexOf('quit') >= 0, 'menu open: ' + keys().join(' '));
     const hdr = draw().targets.filter((q) => ['desktop', 'pads', 'quit', 'settings', 'menu'].indexOf(q.key) >= 0);
     hdr.forEach((p, i) => hdr.slice(i + 1).forEach((q) => assert.ok(p.x + p.w <= q.x || q.x + q.w <= p.x, 'header buttons apart: ' + p.key + ' ' + q.key)));
-    // "Quitter" with a game parked on the PC: a real stop first (the game quits), then MainApp is asked to stop the app
+    // "Quit" with a game parked on the PC: a real stop first (the game quits), then MainApp is asked to stop the app
     d.send({ ev: 'state', state: 'idle', parked: { app: 22, until: Date.now() + 600000 } });
     await sleep(100);
     const nstop = d.cmds('stop').length;
     tap('quit');
-    await until(() => d.cmds('stop').length === nstop + 1, 'stop on Quitter');
-    assert.strictEqual(d.cmds('stop')[nstop].keep, false, 'Quitter: the game is not kept');
+    await until(() => d.cmds('stop').length === nstop + 1, 'stop on Quit');
+    assert.strictEqual(d.cmds('stop')[nstop].keep, false, 'Quit: the game is not kept');
     await sleep(300);
     assert.strictEqual(stops.length, 0, 'MainApp not asked before the game ended');
     d.send({ ev: 'state', state: 'idle', parked: null });
@@ -380,12 +380,12 @@ Module._load = function (req) {
     tap('menu');
 
     // the jap-tailscale tool waits for its login: a chip, then the QR sheet (any tap closes it)
-    assert.ok(says(/^Tailscale : se connecter$/), 'Tailscale chip with the menu open');
+    assert.ok(says(/^Tailscale: sign in$/), 'Tailscale chip with the menu open');
     tap('tslogin');
-    assert.ok(says(/^Connecter Tailscale$/) && says(/^https:\/\/login\.tailscale\.com\/a\/0123456789ab$/), 'QR sheet with the link');
+    assert.ok(says(/^Connect Tailscale$/) && says(/^https:\/\/login\.tailscale\.com\/a\/0123456789ab$/), 'QR sheet with the link');
     assert.deepStrictEqual(keys(), ['tslogin'], 'the sheet takes the page');
     tap('tslogin');
-    assert.ok(!says(/^Connecter Tailscale$/), 'sheet closed');
+    assert.ok(!says(/^Connect Tailscale$/), 'sheet closed');
     if (keys().indexOf('pads') < 0) tap('menu');
 
     // the pads page: list on entry, rows, pair, forget twice
@@ -398,18 +398,18 @@ Module._load = function (req) {
     d.send({ ev: 'pads', msg: { ev: 'list_end', bonded: 1, mask: 1 } });
     await until(() => says(/^80 %$/), 'pad row with battery');
     assert.ok(says(/^Xbox Wireless Controller$/), 'the pad by name');
-    assert.ok(says(/^prêt$/), 'dongle state: ' + draw().said.join(' | '));
-    assert.ok(says(/^Adaptateur USB 8BitDo$/), 'the USB adapter row');
+    assert.ok(says(/^ready$/), 'dongle state: ' + draw().said.join(' | '));
+    assert.ok(says(/^8BitDo USB adapter$/), 'the USB adapter row');
     tap('scan');
     await until(() => d.got.some((m) => m.cmd === 'pads' && m.op === 'scan' && m.on === true), 'scan on');
     d.send({ ev: 'pads', msg: { ev: 'found', addr: 'AA:BB:CC:DD:EE:02', name: 'Xbox Wireless Controller', rssi: -50, bonded: false } });
-    await until(() => keys().indexOf('pair:AA:BB:CC:DD:EE:02') >= 0 && says(/^Associer : Xbox/), 'found row');
+    await until(() => keys().indexOf('pair:AA:BB:CC:DD:EE:02') >= 0 && says(/^Pair: Xbox/), 'found row');
     tap('pair:AA:BB:CC:DD:EE:02');
     await until(() => d.got.some((m) => m.cmd === 'pads' && m.op === 'pair' && m.addr === 'AA:BB:CC:DD:EE:02'), 'pair sent');
     tap('pad:AA:BB:CC:DD:EE:01');
     await sleep(50);
     assert.ok(!d.got.some((m) => m.op === 'forget'), 'one tap does not forget');
-    assert.ok(says(/oublier/), 'asks for a second tap');
+    assert.ok(says(/forget/), 'asks for a second tap');
     tap('pad:AA:BB:CC:DD:EE:01');
     await until(() => d.got.some((m) => m.cmd === 'pads' && m.op === 'forget' && m.addr === 'AA:BB:CC:DD:EE:01'), 'forget on the second tap');
     assert.strictEqual(hooks.back(), true, 'the controller pushed left: back home, taken by the app');
@@ -423,11 +423,11 @@ Module._load = function (req) {
     hooks.focus('app:8');
     const c8 = draw().targets.find((q) => q.key === 'app:8');
     assert.ok(c8 && c8.x >= 12 && c8.x + c8.w <= 1588, 'focused card in view: ' + JSON.stringify(c8 && [c8.x, c8.w]));
-    assert.ok(says(/^1920 × 720 · 60 i\/s$/), 'the focused card says the stream mode');
-    // the HMI's bar (where the page can't be touched): Suivant to the next target (Actualiser), Ouvrir runs it
+    assert.ok(says(/^1920 × 720 · 60 fps$/), 'the focused card says the stream mode');
+    // the HMI's bar (where the page can't be touched): Next to the next target (Refresh), Open runs it
     const nl = d.cmds('applist').length;
     click('BTN_NEXT'); click('BTN_OK');
-    await until(() => d.cmds('applist').length === nl + 1, 'Suivant + Ouvrir: applist');
+    await until(() => d.cmds('applist').length === nl + 1, 'Next + Open: applist');
 
     {   // touchpad: moves only in touch mode (3), a short still touch = left click; samples as measured 03/11
         const { Touchpad } = require('../../apps/jap_moonride/input');

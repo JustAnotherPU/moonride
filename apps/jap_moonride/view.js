@@ -16,7 +16,7 @@
  *                 {"ev":"stats"} (main.cpp stats_loop, one second's worth). Drawn only, no targets: touch stays the game's.
  *
  * The page is 1600 x 520 but where the kit runs the screen only y 38.. and x 12..1588 show (display.js
- * FULL.src), so nothing sits above TOP. Text is French and literal (no kit i18n).
+ * FULL.src), so nothing sits above TOP. Text is English and literal (no kit i18n).
  */
 const qr = require('./kit/qr');
 const W = 1600, H = 520, TOP = 38;
@@ -30,7 +30,7 @@ function layout(extra) {
     CARD = L.card, PITCH = CARD.w + CARD.gap, SHOWN = Math.floor((W - CARD.x) / PITCH);
 }
 layout(0);
-const ACTION_W = 160;                                   // the row's end cards (Actualiser, Jumeler)
+const ACTION_W = 160;                                   // the row's end cards (Refresh, Pair)
 const LIT = { literal: true }, BOLD = { literal: true, font: 'bold' };
 const C = { text: '#ffffff', dim: '#ffffffa6', dim2: '#ffffffc8', faint: '#ffffff66', glass: '#ffffff17', glass2: '#ffffff26', green: '#30d158',
     orange: '#ff9f0a', red: '#ff453a', blue: '#0a84ff', link: '#5ac8fa', sheet: '#23262e', box: '#343842' };
@@ -173,10 +173,10 @@ function button(cv, m, key, cx, y, label, run, fill) {
 /* ---------- home ---------- */
 function statusOf(m) {
     const st = m.st;
-    if (!st.up) return { dot: '#8e8e93', text: 'Outil jap-moonride absent' };
-    if (st.pin) return { dot: C.orange, text: 'Jumelage…' };
-    if (!st.host) return { dot: '#8e8e93', text: 'Pas encore jumelé' };
-    if (st.offline) return { dot: '#8e8e93', text: 'PC introuvable' };
+    if (!st.up) return { dot: '#8e8e93', text: 'jap-moonride service missing' };
+    if (st.pin) return { dot: C.orange, text: 'Pairing…' };
+    if (!st.host) return { dot: '#8e8e93', text: 'Not paired yet' };
+    if (st.offline) return { dot: '#8e8e93', text: 'PC not found' };
     const rtt = st.stats && st.stats.rtt ? ' · ' + st.stats.rtt + ' ms' : '';
     return { dot: C.green, text: (st.hostname || st.host) + rtt };
 }
@@ -192,20 +192,20 @@ function home(cv, m) {
     if (desk) {
         cv.roundRect(sx + 12, py, dw, 44, 22, m.focus === 'desktop' ? C.glass2 : C.glass);
         monitor(cv, sx + 42, cy - 1, 13, C.text, '#1a2236');
-        cv.text('Bureau', sx + 66, cy + 8, 22, C.text, BOLD);
+        cv.text('Desktop', sx + 66, cy + 8, 22, C.text, BOLD);
         ring(cv, m, 'desktop', sx + 12, py, dw, 44, 22);
     }
     // right: "•••" (round); open, the pads then Settings to its left. Closed, the covers have the page
     cv.circle(1534, cy, 26, m.focus === 'menu' || m.menu ? C.glass2 : C.glass);
     [-10, 0, 10].forEach((d) => cv.circle(1534 + d, cy, 3.5, C.text));
     ring(cv, m, 'menu', 1508, py - 4, 52, 52, 26);
-    const pn = m.pads.conn.size, ptext = pn ? (pn === 1 ? '1 manette' : pn + ' manettes') : 'Manettes';
-    // open: Manettes, Quitter (the app ends, the game on the PC too), Settings
-    const qw = cv.textWidth('Quitter', 22, BOLD) + 44, qx = 1430 - qw;
+    const pn = m.pads.conn.size, ptext = pn ? (pn === 1 ? '1 gamepad' : pn + ' gamepads') : 'Gamepads';
+    // open: Gamepads, Quit (the app ends, the game on the PC too), Settings
+    const qw = cv.textWidth('Quit', 22, BOLD) + 44, qx = 1430 - qw;
     const pw = cv.textWidth(ptext, 22, BOLD) + 82, px = qx - 12 - pw;
     if (m.menu) {
         cv.roundRect(qx, py, qw, 44, 22, m.focus === 'quit' ? C.glass2 : C.glass);
-        cv.text('Quitter', qx + 22, cy + 8, 22, C.text, BOLD);
+        cv.text('Quit', qx + 22, cy + 8, 22, C.text, BOLD);
         ring(cv, m, 'quit', qx, py, qw, 44, 22);
         cv.roundRect(px, py, pw, 44, 22, m.focus === 'pads' ? C.glass2 : C.glass);
         pad(cv, px + 32, cy, 13, C.text, '#1a2236');
@@ -215,7 +215,7 @@ function home(cv, m) {
         gear(cv, 1472, cy, 13, C.text);
         ring(cv, m, 'settings', 1446, py - 4, 52, 52, 26);
     }
-    // the row: the host's apps, then Actualiser and Jumeler; or a message where there are none
+    // the row: the host's apps, then Refresh and Pair; or a message where there are none
     cv.clip(L.clipX, L === BIG ? 0 : TOP, W - 2 * L.clipX, H + (m.extra || 0));
     if (!st.up || !st.host || !st.apps.length) empty(cv, m);
     else {
@@ -228,8 +228,8 @@ function home(cv, m) {
             const it = items[i], x = CARD.x + (i - first) * PITCH;
             if (it.app && m.focus === 'app:' + it.app.id) { focused = { a: it.app, x }; continue; }
             if (it.app) appCard(cv, m, it.app, x, false);
-            else if (it.key === 'refresh') actionCard(cv, m, 'refresh', x, 'Actualiser', refreshIcon, m.act.refresh);
-            else actionCard(cv, m, 'pair', x, 'Jumeler', plus, m.act.pair);
+            else if (it.key === 'refresh') actionCard(cv, m, 'refresh', x, 'Refresh', refreshIcon, m.act.refresh);
+            else actionCard(cv, m, 'pair', x, 'Pair', plus, m.act.pair);
         }
         if (focused) appCard(cv, m, focused.a, focused.x, true);
         // its target back in the row's order (the controller's knob goes along it)
@@ -252,16 +252,16 @@ function empty(cv, m) {
     const st = m.st, y = CARD.y, h = CARD.h;
     cv.roundRect(CARD.x, y, W - 2 * CARD.x, h, CARD.r, C.glass);
     let t, sub, b = null;
-    if (!st.up) { t = 'L\'outil jap-moonride ne répond pas'; sub = 'Il démarre avec la voiture : réessaie dans un instant.'; } else if (!st.host) {
-        t = 'Associe la voiture à ton PC'; sub = m.host === '0.0.0.0' ? 'Règle d\'abord l\'adresse IP du PC dans les réglages (Host IP)' : 'PC : ' + m.host + ' (modifiable dans les réglages)'; b = ['pair', 'Jumeler', m.act.pair];
+    if (!st.up) { t = 'The jap-moonride service is not responding'; sub = 'It starts with the car: try again in a moment.'; } else if (!st.host) {
+        t = 'Pair the car with your PC'; sub = m.host === '0.0.0.0' ? 'First set your PC\'s address in Settings (Host IP)' : 'PC: ' + m.host + ' (change it in Settings)'; b = ['pair', 'Pair', m.act.pair];
     } else if (st.offline) {
-        t = 'PC introuvable'; sub = 'Vérifie que le PC ' + st.host + ' est allumé et sur le même réseau.'; b = ['refresh', 'Réessayer', m.act.refresh];
-    } else { t = 'Chargement des jeux…'; sub = 'Le PC ' + (st.hostname || st.host) + ' envoie sa liste.'; b = ['refresh', 'Actualiser', m.act.refresh]; }
+        t = 'PC not found'; sub = 'Check that the PC ' + st.host + ' is on and on the same network.'; b = ['refresh', 'Retry', m.act.refresh];
+    } else { t = 'Loading games…'; sub = 'Waiting for the list from ' + (st.hostname || st.host) + '.'; b = ['refresh', 'Refresh', m.act.refresh]; }
     cv.text(fit(cv, t, 36, 1400, BOLD), W / 2, y + 112, 36, C.text, { literal: true, font: 'bold', align: 'center' });
     cv.text(fit(cv, sub, 24, 1400, LIT), W / 2, y + 156, 24, C.dim, { literal: true, align: 'center' });
     if (b) button(cv, m, b[0], W / 2, y + 196, b[1], b[2]);
     // a paired host that went quiet can still be paired again (another PC, a new address)
-    if (b && b[0] === 'refresh' && st.offline) button(cv, m, 'pair', W / 2 + 260, y + 196, 'Jumeler', m.act.pair, C.glass2);
+    if (b && b[0] === 'refresh' && st.offline) button(cv, m, 'pair', W / 2 + 260, y + 196, 'Pair', m.act.pair, C.glass2);
 }
 function chip(cv, x, label, icon, color) {
     const w = cv.textWidth(label, 20, LIT) + 58;
@@ -274,24 +274,24 @@ function footer(cv, m) {
     let x = 40;
     // the chips only with the menu open (or while it refuses to start: the car moves)
     if (m.parkedOnly && (m.menu || m.driving)) {
-        x = chip(cv, x, !m.driving ? 'Stationné uniquement' : m.noSpeed ? 'Stationné uniquement : vitesse illisible, démarrage bloqué' : 'Stationné uniquement : en attente de l\'arrêt', (cx, cy) => {
+        x = chip(cv, x, !m.driving ? 'Parked only' : m.noSpeed ? 'Parked only: speed unreadable, start blocked' : 'Parked only: waiting for the car to stop', (cx, cy) => {
             cv.roundRect(cx - 9, cy - 9, 18, 18, 4, m.driving ? C.orange : '#ffffffd0');
             cv.text('P', cx, cy + 6, 16, '#111318', { literal: true, font: 'bold', align: 'center' });
         }, m.driving ? C.orange : null);
     }
     // how to pick a card: the controller where the kit has it, else the HMI's bar buttons
-    const hint = m.ring ? 'Suivant : choisir · Ouvrir : jouer' : 'Tourner : choisir · Appuyer : jouer';
+    const hint = m.ring ? 'Next: choose · Open: play' : 'Turn: choose · Press: play';
     if (m.menu && m.st.apps.length && !m.st.pin) x = chip(cv, x, hint, (cx, cy) => cv.arc(cx, cy, 6, 9, 0, 360, '#ffffffd0'));
     // Tailscale waits for its login (the 5G relay): the chip opens the QR code
     if (m.st.tsUrl && (m.menu || m.st.offline)) {
         const x0 = x;
-        x = chip(cv, x, 'Tailscale : se connecter', (cx, cy) => cv.arc(cx, cy, 6, 9, 0, 360, C.orange), C.orange);
+        x = chip(cv, x, 'Tailscale: sign in', (cx, cy) => cv.arc(cx, cy, 6, 9, 0, 360, C.orange), C.orange);
         ring(cv, m, 'tslogin', x0, L.footY, x - x0 - 12, 40, 12);
         cv.target(x0, L.footY, x - x0 - 12, 40, m.act.tslogin, 'tslogin', 12);
     }
     if (m.live) {
         // streaming but GAME not in front (starting, stopping): Stop
-        const label = m.st.state === 'launching' ? 'Démarrage… · Arrêter' : 'Arrêter le stream', w = cv.textWidth(label, 20, BOLD) + 58;
+        const label = m.st.state === 'launching' ? 'Starting… · Stop' : 'Stop the stream', w = cv.textWidth(label, 20, BOLD) + 58;
         cv.roundRect(x, L.footY, w, 40, 12, m.focus === 'stop' ? '#ff453a66' : '#ff453a40');
         cv.roundRect(x + 15, L.footY + 13, 14, 14, 3, C.red);
         cv.text(label, x + 40, L.footY + 27, 20, C.text, BOLD);
@@ -299,15 +299,15 @@ function footer(cv, m) {
         cv.target(x, L.footY, w, 40, m.act.stop, 'stop', 12);
     }
     // right: what went wrong, else how many apps
-    const n = games(m.st.apps).length, right = m.st.error ? m.st.error : n ? n + (n === 1 ? ' jeu' : ' jeux') : '';
+    const n = games(m.st.apps).length, right = m.st.error ? m.st.error : n ? n + (n === 1 ? ' game' : ' games') : '';
     if (right) cv.text(fit(cv, right, 20, Math.max(200, 1560 - x - 24), LIT), 1560, L.footY + 27, 20, m.st.error ? C.orange : C.faint, { literal: true, align: 'right' });
 }
 function pinSheet(cv, m) {
     cv.fillRect(0, 0, W, H + (m.extra || 0), '#000000a8');
     const x = 340, y = 62, w = 920, h = 432, cx = x + w / 2;
     cv.roundRect(x, y, w, h, 34, C.sheet);
-    cv.text('Associer la voiture à ton PC', cx, y + 58, 36, C.text, { literal: true, font: 'bold', align: 'center' });
-    cv.text('Sur le PC, ouvre l\'interface web de Sunshine / Apollo › PIN et tape ce code.', cx, y + 100, 24, C.dim, { literal: true, align: 'center' });
+    cv.text('Pair the car with your PC', cx, y + 58, 36, C.text, { literal: true, font: 'bold', align: 'center' });
+    cv.text('On the PC, open the Sunshine / Apollo web UI › PIN and enter this code.', cx, y + 100, 24, C.dim, { literal: true, align: 'center' });
     const pin = String(m.st.pin), bw = 104, gap = 18, bx = cx - (pin.length * bw + (pin.length - 1) * gap) / 2;
     for (let i = 0; i < pin.length; i++) {
         cv.roundRect(bx + i * (bw + gap), y + 126, bw, 124, 18, C.box);
@@ -316,9 +316,9 @@ function pinSheet(cv, m) {
     const url = 'https://' + m.host + ':47990/pin', uw = cv.textWidth(url, 24, BOLD) + 44;
     cv.roundRect(cx - uw / 2, y + 276, uw, 48, 12, '#1b3a5c');
     cv.text(url, cx, y + 308, 24, C.link, { literal: true, font: 'bold', align: 'center' });
-    const ww = cv.textWidth('En attente du PC…', 24, LIT);
+    const ww = cv.textWidth('Waiting for the PC…', 24, LIT);
     spinner(cv, cx - ww / 2 - 22, y + 362, 10);
-    cv.text('En attente du PC…', cx + 8, y + 370, 24, C.dim, { literal: true, align: 'center' });
+    cv.text('Waiting for the PC…', cx + 8, y + 370, 24, C.dim, { literal: true, align: 'center' });
 }
 
 const RISK = 'Streaming while driving is for passengers only. The driver must never watch or operate it. ' +
@@ -349,49 +349,49 @@ function tsSheet(cv, m) {
     cv.fillRect(0, 0, W, H + (m.extra || 0), '#000000a8');
     const x = 300, y = 40, w = 1000, h = 460, cx = x + w / 2;
     cv.roundRect(x, y, w, h, 34, C.sheet);
-    cv.text('Connecter Tailscale', cx, y + 58, 36, C.text, { literal: true, font: 'bold', align: 'center' });
-    cv.text('Scanne ce code avec un téléphone connecté à ton compte Tailscale.', cx, y + 100, 24, C.dim, { literal: true, align: 'center' });
+    cv.text('Connect Tailscale', cx, y + 58, 36, C.text, { literal: true, font: 'bold', align: 'center' });
+    cv.text('Scan this code with a phone signed in to your Tailscale account.', cx, y + 100, 24, C.dim, { literal: true, align: 'center' });
     const side = (qr.encode(m.st.tsUrl).length + 8) * 6;    // the code and its 4-module quiet zone
     qr.draw(cv, m.st.tsUrl, cx - side / 2, y + 122, 6);
     cv.text(fit(cv, m.st.tsUrl, 22, w - 80, LIT), cx, y + 418, 22, C.link, { literal: true, align: 'center' });
     cv.target(0, 0, W, H + (m.extra || 0), m.act.tslogin, 'tslogin', 0);
 }
 
-/* ---------- Manettes ---------- */
-const DONGLE = { none: 'aucun dongle Bluetooth branché', searching: 'recherche du dongle…', init: 'démarrage du dongle…',
-    up: 'prêt', unusable: 'dongle inutilisable' };
+/* ---------- Gamepads ---------- */
+const DONGLE = { none: 'no Bluetooth dongle plugged in', searching: 'looking for the dongle…', init: 'starting the dongle…',
+    up: 'ready', unusable: 'dongle unusable' };
 /** The groups of the pads page: [{ title, rows: [{ key?, icon, title, sub, right, pct, color }] }] */
 function padGroups(m) {
     const st = m.st, p = m.pads;
-    const groups = [{ title: 'DONGLE USB', rows: [{ icon: 'usb', color: C.green, title: 'Adaptateur USB 8BitDo',
-        sub: 'Associe la manette avec le bouton du dongle' }] }];
+    const groups = [{ title: 'USB DONGLE', rows: [{ icon: 'usb', color: C.green, title: '8BitDo USB adapter',
+        sub: 'Pair the gamepad with the dongle\'s button' }] }];
     // pads the Bluetooth helper knows (connected or bonded); the USB pad sends no state to the app
     const pads = m.padRows.filter((r) => r.op === 'forget').map((r) => {
         const armed = p.armed === r.addr;
         return { key: 'pad:' + r.addr, icon: 'pad', color: C.blue, title: r.name,
-            sub: armed ? 'Toucher encore pour oublier cette manette' : r.conn ? 'Connectée · Bluetooth' : 'Associée · Bluetooth',
+            sub: armed ? 'Tap again to forget this gamepad' : r.conn ? 'Connected · Bluetooth' : 'Paired · Bluetooth',
             subColor: armed ? C.red : null, pct: r.pct, run: () => m.act.pad(r) };
     });
-    if (!pads.length) pads.push({ icon: 'pad', color: C.blue, title: 'Manette sur le dongle USB', sub: 'Joueur 1 pendant le stream' });
-    groups.push({ title: 'MANETTES', rows: pads });
+    if (!pads.length) pads.push({ icon: 'pad', color: C.blue, title: 'Gamepad on the USB dongle', sub: 'Player 1 during the stream' });
+    groups.push({ title: 'GAMEPADS', rows: pads });
     if (st.up && st.bt) {
-        const rows = [{ icon: 'bt', color: '#636366', title: 'Dongle Bluetooth',
-            sub: p.dongle ? DONGLE[p.dongle] || p.dongle : 'état inconnu', right: p.dmsg || '' }];
-        rows.push({ key: 'scan', icon: 'plus', color: '#3a3a3c', title: p.scan ? 'Recherche en cours… toucher pour arrêter' : 'Rechercher des manettes Bluetooth',
+        const rows = [{ icon: 'bt', color: '#636366', title: 'Bluetooth dongle',
+            sub: p.dongle ? DONGLE[p.dongle] || p.dongle : 'state unknown', right: p.dmsg || '' }];
+        rows.push({ key: 'scan', icon: 'plus', color: '#3a3a3c', title: p.scan ? 'Searching… tap to stop' : 'Search for Bluetooth gamepads',
             link: true, run: m.act.scan });
         m.padRows.filter((r) => r.op === 'pair').forEach((r) => rows.push({ key: 'pair:' + r.addr, icon: 'plus', color: '#3a3a3c',
-            title: 'Associer : ' + r.name, sub: r.addr, link: true, run: () => m.act.pad(r) }));
+            title: 'Pair: ' + r.name, sub: r.addr, link: true, run: () => m.act.pad(r) }));
         groups.push({ title: 'BLUETOOTH', rows });
     }
     return groups;
 }
 // the key tester under the help: what the USB pad sends right now (XInput button bits, as Moonlight's)
 const KEYS = [['A', 0x1000], ['B', 0x2000], ['X', 0x4000], ['Y', 0x8000], ['LB', 0x100], ['RB', 0x200], ['LT', 'lt'], ['RT', 'rt'],
-    ['L3', 0x40], ['R3', 0x80], ['Vue', 0x20], ['Menu', 0x10], ['Xbox', 0x400]];
+    ['L3', 0x40], ['R3', 0x80], ['View', 0x20], ['Menu', 0x10], ['Xbox', 0x400]];
 function padTester(cv, m) {
     const t = m.pads.test, x0 = 40, y0 = 368;
-    cv.text('TEST DES TOUCHES', x0, y0, 18, C.faint, { literal: true, font: 'bold', spacing: 1.5 });
-    cv.text(t ? 'Manette détectée' : 'Aucune manette USB', x0 + 440, y0, 18, t ? C.green : C.orange, { literal: true, align: 'right' });
+    cv.text('BUTTON TEST', x0, y0, 18, C.faint, { literal: true, font: 'bold', spacing: 1.5 });
+    cv.text(t ? 'Gamepad detected' : 'No USB gamepad', x0 + 440, y0, 18, t ? C.green : C.orange, { literal: true, align: 'right' });
     const on = (k) => !!t && (typeof k === 'string' ? t[k] > 30 : (t.b & k) !== 0);
     KEYS.forEach(([label, k], i) => {
         const row = i < 8 ? 0 : 1, col = row ? i - 8 : i, w = row ? 62 : 50, x = x0 + col * (w + 5), y = y0 + 14 + row * 40;
@@ -410,12 +410,12 @@ function padTester(cv, m) {
 }
 const ROW_H = 84, GROUP_GAP = 54, PX = 520, PW = 1040;
 function padsPage(cv, m) {
-    header(cv, m, 'Manettes');
-    const help = ['Allume la manette et appuie sur le', 'bouton d\'association du dongle 8BitDo.', '',
-        'Elle sert de manette 1 pendant le stream.'];
+    header(cv, m, 'Gamepads');
+    const help = ['Turn the gamepad on and press the', 'pairing button on the 8BitDo dongle.', '',
+        'It is gamepad 1 during the stream.'];
     help.forEach((l, i) => { if (l) cv.text(l, 40, 158 + i * 32, 24, C.dim, LIT); });
     let note = m.pads.note;
-    if (!m.st.up) note = 'Outil jap-moonride absent';
+    if (!m.st.up) note = 'jap-moonride service missing';
     if (note) cv.text(fit(cv, note, 22, 440, LIT), 40, 296, 22, C.orange, LIT);
     padTester(cv, m);
     // close (back home), where Settings is on the home page
@@ -424,7 +424,7 @@ function padsPage(cv, m) {
     ring(cv, m, 'close', 1508, 54, 52, 52, 26);
 
     const bottom = H + (m.extra || 0);
-    cv.clip(PX - 12, 112, PW + 24, bottom - 112);
+    cv.clip(PX - 12, 100, PW + 24, bottom - 100);         // (from 100: the first group's title reaches up to y 106)
     let y = 132 - m.padSy;
     padGroups(m).forEach((g) => {
         cv.text(g.title, PX + 22, y - 12, 18, C.faint, { literal: true, font: 'bold', spacing: 1.5 });
@@ -481,12 +481,12 @@ function loading(cv, m) {
     else if (/desktop|bureau/i.test(title)) monitor(cv, cx + cw / 2, cy + ch / 2, 60, '#e8eef8', col[0]);
     // right: the name, what is happening, a bar that never stops moving
     const x = 560, tw = 900;
-    cv.text('LANCEMENT', x, cy + 70, 20, C.faint, { literal: true, font: 'bold', spacing: 2 });
+    cv.text('LAUNCHING', x, cy + 70, 20, C.faint, { literal: true, font: 'bold', spacing: 2 });
     const lines = wrap2(cv, title, 56, tw, BOLD);
     let y = cy + 140;
     lines.forEach((t, i) => { if (i) y += 64; cv.text(t, x, y, 56, C.text, BOLD); });
     if (rest) { y += 44; cv.text(fit(cv, rest, 28, tw, LIT), x, y, 28, C.dim, LIT); }
-    const step = el < 4000 ? 'Connexion au PC' : el < 15000 ? 'Le PC passe en mode jeu' : 'Démarrage du jeu';
+    const step = el < 4000 ? 'Connecting to the PC' : el < 15000 ? 'The PC is switching to game mode' : 'Starting the game';
     const dots = '...'.slice(0, 1 + Math.floor(el / 400) % 3);
     cv.text(step + dots, x, y + 70, 26, C.dim2, LIT);
     const by = y + 100, bw = 620, seg = 180, p = (el % 1600) / 1600, sx = x - seg + p * (bw + seg);
@@ -495,7 +495,7 @@ function loading(cv, m) {
     cv.roundRect(sx, by, seg, 8, 4, C.blue);
     cv.noclip();
     cv.text(Math.floor(el / 1000) + ' s', x + bw, by + 40, 20, C.faint, { literal: true, align: 'right' });
-    button(cv, m, 'stop', x + 80, by + 72, 'Annuler', m.act.stop, C.glass2);
+    button(cv, m, 'stop', x + 80, by + 72, 'Cancel', m.act.stop, C.glass2);
 }
 
 /** One frame of the page (see the header). m.rowY comes back filled: where each pads row is, unscrolled. */
@@ -513,21 +513,21 @@ const games = (apps) => apps.filter((a) => !isDesktop(a));
 const rowKeys = (apps) => games(apps).map((a) => 'app:' + a.id).concat(['refresh', 'pair']);
 
 /* ---------- GAME: the performance overlay ---------- */
-// one decimal, French comma; '–' for a field this stream binary does not send
-const n1 = (v) => (typeof v === 'number' && isFinite(v) ? v.toFixed(1).replace('.', ',') : '–');
+// one decimal; '–' for a field this stream binary does not send
+const n1 = (v) => (typeof v === 'number' && isFinite(v) ? v.toFixed(1) : '–');
 const pct = (a, n) => (typeof a === 'number' && n > 0 ? n1(100 * a / n) : '–');
 function statRows(s) {
     const ms = (a, max) => n1(a) + ' ms' + (max !== undefined ? '  (max ' + n1(max) + ')' : '');
     return [
-        ['Flux vidéo', (s.w || '–') + ' × ' + (s.h || '–') + ' · ' + (s.hz || '–') + ' fps · ' + (s.codec || 'H.264') + ' · ' + n1(s.kbps / 1000) + ' Mbps'],
-        ['Images reçues / affichées', (s.fps != null ? s.fps : '–') + ' / ' + (s.shown != null ? s.shown : '–') + ' fps'],
-        ['Perdues par le réseau', pct(s.lost, s.fps + (s.lost || 0)) + ' %'],
-        ['Sautées / échecs décodeur', pct(s.skipped, s.fps) + ' % / ' + pct(s.failed, s.fps) + ' %'],
-        ['Latence réseau (RTT)', (s.rtt != null ? s.rtt : '–') + ' ± ' + (s.rttvar != null ? s.rttvar : '–') + ' ms'],
-        ['Traitement hôte', ms(s.host_ms, s.host_max)],
-        ['Décodage', ms(s.decode_ms, s.decode_max)],
-        ['File / affichage', n1(s.queue_ms) + ' / ' + n1(s.present_ms) + ' ms'],
-        ['Total client (réception à affichage)', ms(s.client_ms, s.client_max)],
+        ['Video stream', (s.w || '–') + ' × ' + (s.h || '–') + ' · ' + (s.hz || '–') + ' fps · ' + (s.codec || 'H.264') + ' · ' + n1(s.kbps / 1000) + ' Mbps'],
+        ['Frames received / shown', (s.fps != null ? s.fps : '–') + ' / ' + (s.shown != null ? s.shown : '–') + ' fps'],
+        ['Lost on the network', pct(s.lost, s.fps + (s.lost || 0)) + ' %'],
+        ['Skipped / decoder failures', pct(s.skipped, s.fps) + ' % / ' + pct(s.failed, s.fps) + ' %'],
+        ['Network latency (RTT)', (s.rtt != null ? s.rtt : '–') + ' ± ' + (s.rttvar != null ? s.rttvar : '–') + ' ms'],
+        ['Host processing', ms(s.host_ms, s.host_max)],
+        ['Decoding', ms(s.decode_ms, s.decode_max)],
+        ['Queue / present', n1(s.queue_ms) + ' / ' + n1(s.present_ms) + ' ms'],
+        ['Client total (receive to present)', ms(s.client_ms, s.client_max)],
     ];
 }
 function stats(cv, s) {
