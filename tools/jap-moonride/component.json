@@ -1,7 +1,7 @@
 {
   "id": "jap-moonride",
   "kind": "tool",
-  "version": "0.3.0",
+  "version": "0.3.2",
   "license": "GPL-3.0-or-later",
   "title": "Moonride streaming service",
   "description": "Moonride's streaming service: moonlightd (Node 22) pairs with your PC (Sunshine / Apollo / Vibepollo), launches and quits its apps and serves /run/jap-moonride/ctl.sock to the Moonride app; mgu-moonlight decodes the stream with the MSDK into the mgu-render video layer and reads a USB XInput pad",

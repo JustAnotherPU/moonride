@@ -401,6 +401,10 @@ def build(app_id, language='en'):
     json.dump(pkg, open(os.path.join(src, 'package.json'), 'w', encoding='utf-8', newline='\n'), indent=2)
     json.dump(manifest, open(os.path.join(src, 'manifest.json'), 'w', encoding='utf-8', newline='\n'), indent=2)
     shutil.copy(os.path.join(KIT, 'platform', 'permissions.json'), os.path.join(src, 'permissions.json'))
+    if spec.get('permissions'):   # joynr interfaces the app calls beyond the kit's: [{domain, interfaceName, operation}]
+        perms = json.load(open(os.path.join(src, 'permissions.json'), encoding='utf-8'))
+        perms['masterAccessTable'] += [dict(perms['masterAccessTable'][0], **p) for p in spec['permissions']]
+        json.dump(perms, open(os.path.join(src, 'permissions.json'), 'w', encoding='utf-8', newline='\n'), indent=2)
     json.dump({'name': app_id, 'version': ver, 'lockfileVersion': 1}, open(os.path.join(src, 'npm-shrinkwrap.json'), 'w', encoding='utf-8', newline='\n'))
     # the SDK merges this over its own config. Newer SDKs (27.x, extracted from a newer donor app) build the app's
     # screens and entry point only with these on, and some donors ship them off: the app then has no screens and

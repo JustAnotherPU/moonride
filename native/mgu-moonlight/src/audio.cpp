@@ -44,7 +44,7 @@ uint32_t g_wav_bytes;
 snd_pcm_t *g_pcm_dev;
 
 std::mutex g_m;
-unsigned g_packets, g_dropped, g_errors, g_xruns;
+unsigned g_packets, g_dropped, g_errors, g_xruns, g_drop_late, g_drop_full, g_partial;   /* late: device too far behind; full: EAGAIN; partial: writei took fewer frames */
 double g_dec_sum, g_dec_max, g_delay_sum;
 unsigned g_delay_n;
 
@@ -132,7 +132,7 @@ void ar_play(char *data, int len)
     const double t0 = mono_ms();
     const int n = opus_multistream_decode(g_dec, (const unsigned char *)data, len, g_pcm, (int)(sizeof g_pcm / sizeof *g_pcm / g_ch), 0);
     const double t1 = mono_ms();
-    bool drop = false, err = n < 0, xrun = false;
+    bool drop = false, err = n < 0, xrun = false, late = false, full = false, partial = false;
     long delay_ms = -1;
     if (n > 0 && g_kind == WAV) {
         fwrite(g_pcm, 2 * (size_t)g_ch, (size_t)n, g_wav);
@@ -141,15 +141,16 @@ void ar_play(char *data, int len)
         long d = 0;
         if (A.delay(g_pcm_dev, &d) == 0) delay_ms = d / 48;
         if (delay_ms > drop_above_ms()) {
-            drop = true;
+            drop = late = true;
         } else {
             long w = A.writei(g_pcm_dev, g_pcm, (unsigned long)n);
-            if (w == -EAGAIN) drop = true;   /* full (nobody reads: the source is not connected): the next packet is 5 ms away */
+            if (w == -EAGAIN) drop = full = true;   /* full (nobody reads: the source is not connected): the next packet is 5 ms away */
             else if (w < 0) xrun = true, A.recover(g_pcm_dev, (int)w, 1);
+            else if (w < n) partial = true;
         }
     }
     std::lock_guard<std::mutex> l(g_m);
-    g_packets++, g_dropped += drop, g_errors += err, g_xruns += xrun;
+    g_packets++, g_dropped += drop, g_errors += err, g_xruns += xrun, g_drop_late += late, g_drop_full += full, g_partial += partial;
     g_dec_sum += t1 - t0;
     if (t1 - t0 > g_dec_max) g_dec_max = t1 - t0;
     if (delay_ms >= 0) g_delay_sum += delay_ms, g_delay_n++;
@@ -177,13 +178,13 @@ void audio_callbacks(AUDIO_RENDERER_CALLBACKS *ar)
 std::string audio_stats_json()
 {
     std::lock_guard<std::mutex> l(g_m);
-    char b[256];
+    char b[320];
     snprintf(b, sizeof b,
-             "\"audio\":{\"packets\":%u,\"dropped\":%u,\"errors\":%u,\"xruns\":%u,\"decode_ms\":%.3f,\"decode_max\":%.3f,"
-             "\"device_ms\":%.1f,\"pending_ms\":%d}",
-             g_packets, g_dropped, g_errors, g_xruns, g_packets ? g_dec_sum / g_packets : 0.0, g_dec_max,
+             "\"audio\":{\"packets\":%u,\"dropped\":%u,\"drop_late\":%u,\"drop_full\":%u,\"partial\":%u,\"errors\":%u,\"xruns\":%u,"
+             "\"decode_ms\":%.3f,\"decode_max\":%.3f,\"device_ms\":%.1f,\"pending_ms\":%d}",
+             g_packets, g_dropped, g_drop_late, g_drop_full, g_partial, g_errors, g_xruns, g_packets ? g_dec_sum / g_packets : 0.0, g_dec_max,
              g_delay_n ? g_delay_sum / g_delay_n : -1.0, LiGetPendingAudioDuration());
-    g_packets = g_dropped = g_errors = g_xruns = g_delay_n = 0;
+    g_packets = g_dropped = g_errors = g_xruns = g_delay_n = g_drop_late = g_drop_full = g_partial = 0;
     g_dec_sum = g_dec_max = g_delay_sum = 0;
     return b;
 }

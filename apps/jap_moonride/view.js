@@ -200,8 +200,13 @@ function home(cv, m) {
     [-10, 0, 10].forEach((d) => cv.circle(1534 + d, cy, 3.5, C.text));
     ring(cv, m, 'menu', 1508, py - 4, 52, 52, 26);
     const pn = m.pads.conn.size, ptext = pn ? (pn === 1 ? '1 manette' : pn + ' manettes') : 'Manettes';
-    const pw = cv.textWidth(ptext, 22, BOLD) + 82, px = 1426 - pw;
+    // open: Manettes, Quitter (the app ends, the game on the PC too), Settings
+    const qw = cv.textWidth('Quitter', 22, BOLD) + 44, qx = 1430 - qw;
+    const pw = cv.textWidth(ptext, 22, BOLD) + 82, px = qx - 12 - pw;
     if (m.menu) {
+        cv.roundRect(qx, py, qw, 44, 22, m.focus === 'quit' ? C.glass2 : C.glass);
+        cv.text('Quitter', qx + 22, cy + 8, 22, C.text, BOLD);
+        ring(cv, m, 'quit', qx, py, qw, 44, 22);
         cv.roundRect(px, py, pw, 44, 22, m.focus === 'pads' ? C.glass2 : C.glass);
         pad(cv, px + 32, cy, 13, C.text, '#1a2236');
         cv.text(ptext, px + 56, cy + 8, 22, C.text, BOLD);
@@ -237,6 +242,7 @@ function home(cv, m) {
     cv.target(1508, py - 4, 52, 52, m.act.menu, 'menu', 26);
     if (m.menu) {
         cv.target(px, py, pw, 44, m.act.pads, 'pads', 22);
+        cv.target(qx, py, qw, 44, m.act.quit, 'quit', 22);
         cv.target(1446, py - 4, 52, 52, m.act.settings, 'settings', 26);
     }
     // the sheet takes the page: nothing behind it can be pressed (the daemon has no cancel; BACK leaves)

@@ -2,11 +2,14 @@
   "id": "jap_moonride",
   "title": "Moonride",
   "description": "Moonride: Moonlight game streaming from your PC (Sunshine / Apollo / Vibepollo) on the whole screen, parked only by default. Pairing, app list, Start / Stop; the stream is decoded by the mgu-moonlight tool and drawn by mgu-render",
-  "version": "0.3.1",
+  "version": "0.3.2",
   "vendor": "custom",
   "license": "GPL-3.0-or-later",
   "loggingId": "MOON",
   "iconGlyph": "MR",
+  "permissions": [
+    {"domain": "VIN-*", "interfaceName": "de/bmw/infotainment/telematic/oap/appruntime/AppRuntime_ff", "operation": "stopApp"}
+  ],
   "signals": {
     "de.bmw.infotainment.vehicle.Vehicle2": {
       "statusCarSpeed2": "rs"
@@ -49,6 +52,12 @@
     }
   ],
   "settings": [
+    {
+      "key": "resume",
+      "label": "Resume the game after a lost connection or a switch to another app (the game stays open on the PC; Back or Quitter ends it)",
+      "type": "bool",
+      "default": true
+    },
     {
       "key": "parkedOnly",
       "label": "Parked only (stops the stream when the car moves; cannot be turned off while moving). Off = streaming while driving, AT YOUR OWN RISK: passengers only, the driver must never watch or play",

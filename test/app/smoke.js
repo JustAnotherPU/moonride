@@ -109,8 +109,18 @@ const speed = (kmh) => {
 };
 
 const hooks = {};
+// MainApp's joynr: the stopApp calls the "Quitter" makes
+const stops = [];
+process.env.VIN = 'WBATEST0000000000';
+const app = Object.assign(new EventEmitter(), {
+    getAppId: () => 'jap_moonride',
+    joynrProxyFactory: { create: (domain, P) => ({ init() {
+        const op = function (self, s, name) { this.buildFunction = () => (a) => { stops.push({ domain, iface: self.interfaceName, name, a }); return Promise.resolve(); }; };
+        this.builtProxy = new P({ proxyElementTypes: { ProxyOperation: op } }); return Promise.resolve(this);
+    } }) },
+});
 const ctx = {
-    ui, settings, log, spec, signals, dataDir: tmp,
+    ui, settings, log, spec, signals, dataDir: tmp, app,
     canvas: (w, h) => new Recorder(w, h), loop: (n, fps, fn) => { loops[n] = fn; },
     onPageFocus: (fn) => { hooks.focus = fn; }, onBack: (fn) => { hooks.back = fn; }, onLayout() {}, hideButton() {},
 };
@@ -185,7 +195,7 @@ Module._load = function (req) {
     speed(0);
     tap('desktop');
     await until(() => d.cmds('start').length, 'start');
-    assert.deepStrictEqual(d.cmds('start')[0], { cmd: 'start', app: 11, w: 1920, h: 720, fps: 60, kbps: 8000, codec: 'auto', audio: 'car' });
+    assert.deepStrictEqual(d.cmds('start')[0], { cmd: 'start', app: 11, w: 1920, h: 720, fps: 60, kbps: 8000, codec: 'auto', audio: 'car', keep: true });
     d.send({ ev: 'state', state: 'launching' });
     d.send({ ev: 'state', state: 'streaming' });
     await sleep(300);
@@ -292,6 +302,7 @@ Module._load = function (req) {
     await until(() => top() === 'GAME' && r.types(3).slice(-1)[0].p.readUInt32LE(0) === 1, 'shown again');
     ui.back();
     await until(() => d.cmds('stop').length === 2, 'stop on BACK');
+    assert.strictEqual(d.cmds('stop')[1].keep, false, 'BACK quits the game on the PC');
     await until(() => r.types(3).slice(-1)[0].p.readUInt32LE(0) === 0, 'SHOW 0 on BACK');
     d.send({ ev: 'state', state: 'idle' });
 
@@ -326,10 +337,48 @@ Module._load = function (req) {
     d.send({ ev: 'state', state: 'idle' });
     speed(0); settings.set('parkedOnly', true);
 
+    // another app in front (setting "resume", on by default): the game is kept on the PC, resumed on the way back
+    await sleep(2100);
+    tap('app:22');
+    await until(() => d.cmds('start').length === 4, 'fourth start');
+    d.send({ ev: 'state', state: 'streaming' }); d.send({ ev: 'stats', shown: 1 });
+    await until(() => top() === 'GAME', 'shown a fourth time');
+    const away = stack; stack = []; setTopFrom('GAME');           // the HMI shows another app: none of ours visible
+    await until(() => d.cmds('stop').length === 4, 'stop when another app is in front');
+    assert.strictEqual(d.cmds('stop')[3].keep, true, 'kept on the PC');
+    d.send({ ev: 'state', state: 'idle', parked: { app: 22, until: Date.now() + 600000 } });
+    await sleep(400);
+    assert.strictEqual(d.cmds('resume').length, 0, 'no resume while away');
+    stack = away; visH.forEach((f) => f(top(), true));            // back in Moonride
+    await until(() => d.cmds('resume').length === 1, 'resume on the way back');
+    d.send({ ev: 'state', state: 'launching', parked: null }); d.send({ ev: 'state', state: 'streaming', parked: null }); d.send({ ev: 'stats', shown: 1 });
+    await until(() => top() === 'GAME', 'resumed game shown');
+    await sleep(2100);
+    while (top() === 'GAME') ui.back();                           // (the stub stacks GAME twice; the HMI does not)
+    await until(() => d.cmds('stop').length === 5 && d.cmds('stop')[4].keep === false, 'BACK after the resume quits');
+    d.send({ ev: 'state', state: 'idle', parked: null });
+
     // the "•••" menu: closed, the covers alone (no Manettes / Settings); open, both
     assert.ok(keys().indexOf('pads') < 0 && keys().indexOf('settings') < 0 && keys().indexOf('menu') >= 0, 'menu closed: ' + keys().join(' '));
     tap('menu');
-    assert.ok(keys().indexOf('pads') >= 0 && keys().indexOf('settings') >= 0, 'menu open: ' + keys().join(' '));
+    assert.ok(keys().indexOf('pads') >= 0 && keys().indexOf('settings') >= 0 && keys().indexOf('quit') >= 0, 'menu open: ' + keys().join(' '));
+    const hdr = draw().targets.filter((q) => ['desktop', 'pads', 'quit', 'settings', 'menu'].indexOf(q.key) >= 0);
+    hdr.forEach((p, i) => hdr.slice(i + 1).forEach((q) => assert.ok(p.x + p.w <= q.x || q.x + q.w <= p.x, 'header buttons apart: ' + p.key + ' ' + q.key)));
+    // "Quitter" with a game parked on the PC: a real stop first (the game quits), then MainApp is asked to stop the app
+    d.send({ ev: 'state', state: 'idle', parked: { app: 22, until: Date.now() + 600000 } });
+    await sleep(100);
+    const nstop = d.cmds('stop').length;
+    tap('quit');
+    await until(() => d.cmds('stop').length === nstop + 1, 'stop on Quitter');
+    assert.strictEqual(d.cmds('stop')[nstop].keep, false, 'Quitter: the game is not kept');
+    await sleep(300);
+    assert.strictEqual(stops.length, 0, 'MainApp not asked before the game ended');
+    d.send({ ev: 'state', state: 'idle', parked: null });
+    await until(() => stops.length === 1, 'stopApp asked');
+    assert.deepStrictEqual([stops[0].domain, stops[0].iface, stops[0].name, stops[0].a.appId],
+        ['VIN-WBATEST0000000000', 'de/bmw/infotainment/telematic/oap/appruntime/AppRuntime_ff', 'stopApp', 'jap_moonride'], 'stopApp on MainApp');
+    tap('menu');
+
     // the jap-tailscale tool waits for its login: a chip, then the QR sheet (any tap closes it)
     assert.ok(says(/^Tailscale : se connecter$/), 'Tailscale chip with the menu open');
     tap('tslogin');

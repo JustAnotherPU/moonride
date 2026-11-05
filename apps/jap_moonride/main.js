@@ -54,6 +54,16 @@ const MENU_MS = 15000;               // the "•••" menu closes by itself af
 // bar buttons: where the kit runs the screen the page has their jobs (hidden there)
 const BAR = ['BTN_NEXT', 'BTN_OK', 'BTN_PADS'];
 
+const QUIT_WAIT_MS = 4000;           // "Quitter": how long the stream's end may take before MainApp is asked anyway
+// MainApp's AppRuntime_ff (joynr 1.1, domain VIN-<vin>): stopApp stops an app the way MainApp stops an unused one
+// (its shutdown event: the kit's clean exit; an exit of our own counts as a crash). permissions.json allows it (app.json).
+function RuntimeProxy(s) {
+    this.settings = s;
+    this.stopApp = new s.proxyElementTypes.ProxyOperation(this, s, 'stopApp', [{ inputParameter: [{ name: 'sessionId', type: 'String' }, { name: 'appId', type: 'String' }], outputParameter: [], fireAndForget: true }]).buildFunction();
+    Object.defineProperty(this, 'interfaceName', { value: 'de/bmw/infotainment/telematic/oap/appruntime/AppRuntime_ff' });
+}
+RuntimeProxy.MAJOR_VERSION = 1; RuntimeProxy.MINOR_VERSION = 1; RuntimeProxy.getUsedDatatypes = () => [];
+
 const say = (e) => (e && e.stack) || String(e);
 process.on('uncaughtException', (e) => { try { mgu.log.error('uncaught', e); } catch (x) { /* nothing left to log with */ } });
 process.on('unhandledRejection', (e) => { try { mgu.log.error('unhandled rejection: ' + say(e)); } catch (x) { /* idem */ } });
@@ -87,7 +97,7 @@ mgu.run({
         });
 
         /* ---------- the daemon ---------- */
-        const st = { up: false, state: 'idle', host: null, hostname: null, bt: null, error: null, pin: null, apps: [], stats: null, offline: false };
+        const st = { up: false, state: 'idle', host: null, hostname: null, bt: null, error: null, pin: null, apps: [], stats: null, offline: false, parked: null };
         const pads = { dongle: null, dmsg: '', scan: false, bonded: new Map(), conn: new Map(), battery: {}, found: new Map(), note: '', armed: null, test: null };
         const ctl = new Ctl(log);
         const hostIp = () => [1, 2, 3, 4].map((i) => Number(settings.get('host' + i)) | 0).join('.');
@@ -104,6 +114,13 @@ mgu.run({
                 if ('host' in m) {                                   // the status reply
                     st.host = m.host; st.bt = !!m.bt;
                     if (m.host && !st.apps.length) ctl.send({ cmd: 'applist' });
+                }
+                if ('parked' in m) {
+                    if (m.state === 'launching' && !st.launch && st.parked) {   // the daemon resumes after a lost link
+                        const a = st.apps.find((x) => x.id === st.parked.app) || { id: st.parked.app, title: 'Reprise' };
+                        st.launch = { app: a, t: Date.now() };
+                    }
+                    st.parked = m.parked;
                 }
                 if (m.state === 'streaming') { st.error = null; st.pin = null; st.launch = null; }
                 if (m.state === 'idle' && was !== 'idle') { st.launch = null; ctl.send({ cmd: 'padtest', on: true }); }   // ended, failed or cancelled: the pad back on the cards
@@ -124,7 +141,7 @@ mgu.run({
             else if (m.ev === 'padtest') { padNav(pads.test, m.gone ? null : m); pads.test = m.gone ? null : m; }
             else if (m.ev === 'error') {
                 log.warn('moonlightd: ' + (m.cmd || '') + ': ' + m.msg);
-                if (m.cmd === 'start') st.launch = null;
+                if (m.cmd === 'start' || m.cmd === 'resume') st.launch = null;
                 if (m.cmd === 'pads') { pads.note = m.msg; } else {
                     st.error = m.msg;
                     if (m.cmd === 'pair') st.pin = null;
@@ -210,11 +227,11 @@ mgu.run({
             }).catch((e) => log.warn('car audio: ' + e));
         }
         let stopT = 0;
-        function stop(why) {
+        function stop(why, keep) {
             if (Date.now() - stopT < 2000) return;          // the sync loop asks every 250 ms: once is enough
             stopT = Date.now();
             log.info('stop: ' + why);
-            ctl.send({ cmd: 'stop' });
+            ctl.send({ cmd: 'stop', keep: !!keep });
         }
         const live = () => st.state === 'launching' || st.state === 'streaming';
 
@@ -255,7 +272,7 @@ mgu.run({
                 st.error = null;
                 st.launch = { app: a, t: Date.now() };   // the loading page until the stream shows (or it fails)
                 keys.wheel = view.isDesktop(a);          // the Desktop: the knob turns the mouse wheel
-                ctl.send({ cmd: 'start', app: a.id, w: r[0] || 1920, h: r[1] || 720, fps: 60, kbps: Number(settings.get('kbps')) || 8000, codec: settings.get('codec') || 'auto', audio: settings.get('audio') === 'off' ? 'off' : 'car' });
+                ctl.send({ cmd: 'start', app: a.id, w: r[0] || 1920, h: r[1] || 720, fps: 60, kbps: Number(settings.get('kbps')) || 8000, codec: settings.get('codec') || 'auto', audio: settings.get('audio') === 'off' ? 'off' : 'car', keep: settings.get('resume') !== false });
                 log.info('start ' + a.id + ' ' + r.join('x'));
                 refresh();
             },
@@ -271,6 +288,7 @@ mgu.run({
             },
             refresh: () => { st.error = null; ctl.send({ cmd: 'applist' }); refresh(); },
             stop: () => stop('Stop'),
+            quit: () => { quitApp().catch((e) => log.warn('quit: ' + e)); },
             menu: () => openMenu(!menu),
             pads: () => showPads(true),
             close: () => showPads(false),
@@ -542,14 +560,61 @@ mgu.run({
         // a crash or kill leaves touch mode on until the HMI's next speller or the app's next start (above)
         if (ctx.app && ctx.app.on) ctx.app.on('shutdown', safe('shutdown', () => { if (ccu.on || ccu.restore) touchMode(false); carAudio(false); }));
 
+        // "Quitter": the game ends on the PC (no park), then MainApp stops the app now (not once two other apps are hidden)
+        let quitting = false;
+        async function quitApp() {
+            if (quitting) return;
+            quitting = true;
+            openMenu(false);
+            st.error = null; refresh();
+            if (live() || st.parked) { stopT = 0; stop('Quitter', false); }   // (past the 2 s guard: a park just sent is undone)
+            // our socket closing mid-stop would make the daemon park the game: wait for its end
+            for (const end = Date.now() + QUIT_WAIT_MS; (st.state !== 'idle' || st.parked) && Date.now() < end;) await new Promise((r) => setTimeout(r, 100));
+            const app = ctx.app;
+            try {
+                if (!app || !app.joynrProxyFactory || !process.env.VIN) throw new Error('no joynr or no VIN');
+                const px = app.joynrProxyFactory.create('VIN-' + process.env.VIN, RuntimeProxy);
+                await px.init();
+                log.info('quit: MainApp asked to stop ' + app.getAppId());
+                await px.builtProxy.stopApp({ sessionId: 'moonride-quit-' + Date.now(), appId: app.getAppId() });
+                await new Promise((r) => setTimeout(r, 8000));      // the shutdown comes before this
+                throw new Error('MainApp did not stop the app');
+            } catch (e) {
+                log.warn('quit: ' + e);
+                quitting = false;
+                st.error = 'Fermeture refusée par l\'iDrive : l\'app sera arrêtée après deux autres apps';
+                refresh();
+            }
+        }
+
         // GAME on the layer while: its screen up and in front, streaming, the car parked (or parkedOnly off)
-        let gameWas = false;
+        let gameWas = false, leaveT = 0, away = false;
         function sync() {
             const vis = ui.isVisible('GAME') && (!ui.hasFocus || ui.hasFocus('GAME'));
             if (driving() && live()) { stop('car moving'); if (ui.isVisible('GAME')) ui.open('MAIN'); }
-            // GAME left (BACK, MENU, another app): the stream ends with it
-            if (gameWas && !ui.isVisible('GAME') && live()) stop('left the game screen');
+            // GAME left: BACK (MAIN in front) ends the stream; another app in front (setting "resume") parks the game on
+            // the host, resumed when Moonride is back. Decided 500 ms after the leave: the HMI shows MAIN a moment later.
+            if (gameWas && !ui.isVisible('GAME') && live() && !leaveT) leaveT = Date.now();
+            if (ui.isVisible('GAME')) leaveT = 0;
+            if (leaveT && Date.now() - leaveT >= 500) {
+                leaveT = 0;
+                if (!live()) { /* ended meanwhile */ } else if (!ui.isVisible('MAIN') && settings.get('resume') !== false) { away = true; stop('another app in front: game kept on the PC', true); } else stop('left the game screen');
+            }
             gameWas = ui.isVisible('GAME');
+            const appVis = ui.isVisible('MAIN') || ui.isVisible('GAME');
+            // a stream nobody sees (the daemon resumed after a lost link while another app is in front): parked again
+            if (!appVis && !gameWas && !leaveT && live() && settings.get('resume') !== false) { away = true; stop('not shown: game kept on the PC', true); }
+            if (away && appVis) {
+                away = false;
+                if (st.parked && st.state === 'idle') {
+                    const a = st.apps.find((x) => x.id === st.parked.app) || { id: st.parked.app, title: 'Reprise' };
+                    st.launch = { app: a, t: Date.now() };
+                    keys.wheel = view.isDesktop(a);
+                    log.info('back in Moonride: resume ' + a.id);
+                    ctl.send({ cmd: 'resume' });
+                    refresh();
+                }
+            }
             const want = vis && st.state === 'streaming' && !driving() && !!gpu.placement;
             let cur = null;
             if (want) { try { const f = fs.statSync(VPATH); cur = f.isFile() ? f.ino : null; } catch (e) { cur = null; } }
