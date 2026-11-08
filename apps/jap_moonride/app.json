@@ -2,7 +2,7 @@
   "id": "jap_moonride",
   "title": "Moonride",
   "description": "Moonride: Moonlight game streaming from your PC (Sunshine / Apollo / Vibepollo) on the whole screen, parked only by default. Pairing, app list, Start / Stop; the stream is decoded by the mgu-moonlight tool and drawn by mgu-render",
-  "version": "0.3.3",
+  "version": "0.3.4",
   "vendor": "custom",
   "license": "GPL-3.0-or-later",
   "loggingId": "MOON",
@@ -92,7 +92,7 @@
       "type": "choice",
       "default": "auto",
       "options": [
-        ["auto", "Auto: HEVC through the Tailscale relay, H.264 on the local network"],
+        ["auto", "Auto: HEVC through the tunnel, H.264 on the local network"],
         ["hevc", "HEVC always"],
         ["h264", "H.264 always"]
       ]

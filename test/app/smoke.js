@@ -16,9 +16,6 @@ const spec = JSON.parse(fs.readFileSync(path.join(SRC, 'kit', 'app-spec.json'), 
 const CTL = path.join(tmp, 'ctl.sock'), REN = path.join(tmp, 'render.sock'), VID = path.join(tmp, 'mgu-video-jap-moonride');
 [CTL, REN].forEach((p) => { try { fs.unlinkSync(p); } catch (e) { /* none */ } });
 fs.writeFileSync(VID, Buffer.alloc(64));
-const TSPUB = path.join(tmp, 'tspub'); try { fs.mkdirSync(TSPUB); } catch (e) { /* there */ }
-fs.writeFileSync(path.join(TSPUB, 'login-url'), 'https://login.tailscale.com/a/0123456789ab\n');
-process.env.MGU_TAILSCALE_PUB = TSPUB;
 process.env.MGU_MOONLIGHT_CTL = CTL; process.env.MGU_RENDERD_SOCKET = REN; process.env.MGU_MOONLIGHT_VIDEO = VID;
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
@@ -379,13 +376,7 @@ Module._load = function (req) {
         ['VIN-WBATEST0000000000', 'de/bmw/infotainment/telematic/oap/appruntime/AppRuntime_ff', 'stopApp', 'jap_moonride'], 'stopApp on MainApp');
     tap('menu');
 
-    // the jap-tailscale tool waits for its login: a chip, then the QR sheet (any tap closes it)
-    assert.ok(says(/^Tailscale: sign in$/), 'Tailscale chip with the menu open');
-    tap('tslogin');
-    assert.ok(says(/^Connect Tailscale$/) && says(/^https:\/\/login\.tailscale\.com\/a\/0123456789ab$/), 'QR sheet with the link');
-    assert.deepStrictEqual(keys(), ['tslogin'], 'the sheet takes the page');
-    tap('tslogin');
-    assert.ok(!says(/^Connect Tailscale$/), 'sheet closed');
+    assert.ok(!says(/Tailscale: sign in/), 'no Tailscale sign-in chip: IterioDev\'s Tailscale app shows its own login');
     if (keys().indexOf('pads') < 0) tap('menu');
 
     // the pads page: list on entry, rows, pair, forget twice

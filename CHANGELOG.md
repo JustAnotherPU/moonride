@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.3.4
+
+- Away from the PC's network, Moonride now goes through jap-wireproxy (mgu-apps, your own WireGuard server) or, as
+  the backup, IterioDev's Tailscale (`iteriodev-tailscale` from IterioDev/car-apps, with its SOCKS5 proxy enabled).
+  It uses the first one that reaches the PC. Setting `MGU_SOCKS` in the service lists them in order.
+- Moonride no longer uses the `jap-tailscale` tool. The "Tailscale: sign in" chip and its QR code are gone: sign in
+  with IterioDev's Tailscale app.
+- The UDP part of the relay sends to the address the proxy gives, so it works with a proxy that is not on
+  127.0.0.1.
+- The app and the streaming service are both 0.3.4.
+
 ## 0.3.3
 
 - The app is now in English: the home page, the gamepads page, the pairing, Tailscale and loading screens, the

@@ -408,7 +408,7 @@ int stream(int argc, char **argv)
     STREAM_CONFIGURATION sc;
     LiInitializeStreamConfiguration(&sc);
     sc.width = g_w, sc.height = g_h, sc.fps = fps, sc.bitrate = kbps;
-    sc.packetSize = packet >= 512 && packet <= 1392 ? packet : 1392;   // 1024 through Tailscale (moonlightd's relay)
+    sc.packetSize = packet >= 512 && packet <= 1392 ? packet : 1392;   // 1024 through the tunnel (moonlightd's relay)
     sc.streamingRemotely = STREAM_CFG_LOCAL;
     sc.audioConfiguration = AUDIO_CONFIGURATION_STEREO;
     sc.supportedVideoFormats = VIDEO_FORMAT_H264 | (hevc ? VIDEO_FORMAT_H265 : 0);   // HEVC: the host picks it when offered

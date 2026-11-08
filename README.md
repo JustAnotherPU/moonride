@@ -1,8 +1,8 @@
 # Moonride
 
 **Use at your own risk. Moonride is an independent project, not affiliated with or endorsed by BMW, Moonlight,
-NVIDIA, LizardByte (Sunshine), Apollo, Vibepollo or Tailscale; their names are their owners' trademarks and are
-used only to say what Moonride works with.** By default it streams only while the car is parked.
+NVIDIA, LizardByte (Sunshine), Apollo, Vibepollo, Tailscale or WireGuard; their names are their owners' trademarks
+and are used only to say what Moonride works with.** By default it streams only while the car is parked.
 
 Moonlight game streaming for the BMW iDrive 7 head unit (MGU). Moonride streams games or the desktop from your
 PC to the car's centre screen at 1920 x 720, 60 fps, with the sound on the car's speakers. You play with a USB
@@ -40,12 +40,12 @@ The screenshots use demo data (a made-up PC and games, no box art).
 1. In the MGU Store, open **Sources** and add `JustAnotherPU/moonride` on the **Releases** channel
    (as a default source: `JustAnotherPU/moonride:releases`).
 2. Add `JustAnotherPU/mgu-apps:releases` too (it is a default source once accepted). It has the shared tools
-   **Node.js 22** (`jap-node22`), which Moonride's service runs on, and **Tailscale** (`jap-tailscale`).
+   **Node.js 22** (`jap-node22`), which Moonride's service runs on, and `jap-wireproxy` for playing away from home.
 3. Install **Moonride**. The Store installs what it needs first: the **Moonride streaming service**
    (`jap-moonride`), Node.js 22 from mgu-apps, and mgu-render if it is missing.
 4. If the Store says a restart is pending, restart the head unit before the first start.
-5. Optional, to play away from your PC's network: install **Tailscale** from mgu-apps, see
-   [Playing over 5G](#playing-over-5g-tailscale).
+5. Optional, to play away from your PC's network: install `jap-wireproxy` from mgu-apps or IterioDev's Tailscale,
+   see [Playing over 5G](#playing-over-5g).
 
 ## First run: pairing
 
@@ -64,7 +64,7 @@ The pairing is kept on the head unit (`/var/opt/jap-moonride/state`, readable by
 |---|---|
 | Parked only | On by default. See [Driving](#driving). |
 | Resolution | 1920 x 720 (the whole screen) or 1280 x 720 (pillarboxed). |
-| Codec | Auto (HEVC through the Tailscale relay, H.264 on the local network), HEVC always, H.264 always. |
+| Codec | Auto (HEVC through the tunnel, H.264 on the local network), HEVC always, H.264 always. |
 | Bitrate | 3 to 20 Mbit/s, 8 by default; capped at 6 Mbit/s through the relay. |
 | Sound | The car's speakers, or muted. |
 | Performance statistics | Moonlight's overlay over the game. In a game, hold the iDrive controller pressed for 3 s to toggle it. |
@@ -104,27 +104,37 @@ This was tested on a BMW with iDrive 7 (MGU). Other models and audio systems may
 - **iDrive controller**: arrow keys, Enter and the wheel.
 - Bluetooth pads are not supported in this release.
 
-## Playing over 5G (Tailscale)
+## Playing over 5G
 
-When the PC is not on the car's network, Moonride can reach it through your
-[Tailscale](https://tailscale.com) tailnet. The `jap-tailscale` tool from
-[mgu-apps](https://github.com/JustAnotherPU/mgu-apps) runs Tailscale on the head unit and offers a SOCKS5 proxy on
-`127.0.0.1:1065` (the head unit only). Moonride first tries the PC directly, and if that fails it relays the
-stream through that proxy.
+When the PC is not on the car's network, Moonride can reach it through a tunnel to your home. It works with two
+tools, each with a SOCKS5 proxy that only the head unit can reach:
+
+- `jap-wireproxy` from [mgu-apps](https://github.com/JustAnotherPU/mgu-apps) connects to your own WireGuard server
+  (on your router, for example). Its proxy is on `127.0.0.1:1065`.
+- `iteriodev-tailscale` from [IterioDev/car-apps](https://github.com/IterioDev/car-apps) runs
+  [Tailscale](https://tailscale.com) on the head unit. Its SOCKS5 proxy is off until you enable it, and then it is on
+  `127.0.0.2:1055`.
+
+Moonride first tries the PC directly. If that fails, it tries jap-wireproxy, then Tailscale, and relays the stream
+through the first one that reaches the PC. One of them is enough; with both, Tailscale is the backup.
 
 1. Give the car internet through mgu-uplink (a phone hotspot, an LTE stick, ...).
-2. Install **Tailscale** from the `JustAnotherPU/mgu-apps:releases` source.
-3. In Moonride, open **•••**. A **Tailscale: sign in** chip appears while the tool is waiting for a login.
-   Tap it and scan the QR code with a phone that is signed in to your Tailscale account, then approve the device
-   (`idrive`).
-4. Make the PC reachable on the tailnet: either install Tailscale on the PC and set **Host IP** to its `100.x`
-   address, or keep the PC's LAN address and run a [subnet router](https://tailscale.com/kb/1019/subnets) at
-   home (the car accepts routes).
-5. With Codec on Auto, Moonride picks HEVC through the relay (less bitrate for the same picture).
+2. For your WireGuard server: install `jap-wireproxy` from the `JustAnotherPU/mgu-apps:releases` source and set it
+   up as its README says. Keep the PC's LAN address as **Host IP** if the server lets the car reach your home
+   network.
+3. For Tailscale: install `iteriodev-tailscale` and IterioDev's Tailscale app from IterioDev/car-apps, and sign in
+   with the app (it shows the login QR code). Then enable the SOCKS5 proxy, as root on the head unit:
 
-How the Tailscale tool works and how to keep it safe (its SOCKS5 proxy has no authentication, incoming
-connections are refused, and a tailnet policy example for the car's Moonlight ports) is in the
-[mgu-apps README](https://github.com/JustAnotherPU/mgu-apps#tailscale). On Moonride's side:
+   ```sh
+   echo 1055 > /var/opt/iteriodev-tailscale/socks5-port && systemctl restart iteriodev-tailscale
+   ```
+
+4. With Tailscale, the PC must be on the tailnet: either install Tailscale on the PC and set **Host IP** to its
+   `100.x` address, or keep the PC's LAN address and run a [subnet router](https://tailscale.com/kb/1019/subnets)
+   at home.
+5. With Codec on Auto, Moonride picks HEVC through the tunnel (less bitrate for the same picture).
+
+How each tool works and how to keep it safe is in its own README. On Moonride's side:
 
 - While Moonride relays a stream, it listens on `127.0.0.1` on Moonlight's ports (TCP 47984, 47989, 48010; UDP
   47998-48000) and forwards them to the PC: during that time any program on the head unit can reach the PC's
@@ -153,8 +163,8 @@ letterboxed. Reports from other cars and hosts are welcome in the issues.
   vehicle speed, the page says the speed is unreadable and streaming stays blocked.
 - If Moonride is killed in the middle of a stream, the iDrive touchpad can stay in its handwriting (mouse)
   mode. Open Moonride once, or any text field on the car, to clear it.
-- The video is not encrypted on the network (the sound is), as in Moonlight on a LAN. Over Tailscale the whole
-  link is encrypted.
+- The video is not encrypted on the network (the sound is), as in Moonlight on a LAN. Through jap-wireproxy or
+  Tailscale the whole link is encrypted.
 - The stream is decoded in hardware (Intel Media SDK). 1920 x 720 at 60 fps is the target. A weak Wi-Fi or mobile
   link shows up as dropped frames: lower the bitrate.
 - Popups and the reversing camera cover the stream. The head unit's own shortcuts still work.
@@ -163,7 +173,8 @@ letterboxed. Reports from other cars and hosts are welcome in the issues.
 ## Uninstall
 
 1. In the MGU Store, uninstall **Moonride**, then the **Moonride streaming service** (`jap-moonride`). Node.js 22
-   and Tailscale stay installed for other apps; remove them too if nothing else uses them.
+   stays installed for other apps, and so do jap-wireproxy and Tailscale if you installed them; remove them too if
+   nothing else uses them.
 2. On the PC, open the host's web UI and remove the car from its paired clients, so the pairing key left on the
    head unit is no longer accepted.
 
@@ -175,7 +186,7 @@ letterboxed. Reports from other cars and hosts are welcome in the issues.
 | `kit/` | the app kit (build script and runtime) |
 | `daemon/` | `moonlightd.js`, the service's control plane (Node 22): pairing, launch, the relay |
 | `native/mgu-moonlight` | the streaming binary (C++): moonlight-common-c, MSDK decoder, audio, USB pads |
-| `tools/jap-moonride` | the service's tool: manifest, unit, build script (`jap-node22` and `jap-tailscale` are in mgu-apps) |
+| `tools/jap-moonride` | the service's tool: manifest, unit, build script (`jap-node22` and `jap-wireproxy` are in mgu-apps) |
 | `release/` | makes the Store release (`catalog.json` and the artifacts) |
 
 ## Building
@@ -199,7 +210,7 @@ Tests:
 docker run --rm --network none -v "$PWD:/w" -w /w node:8.16.0-alpine \
   sh -c 'mkdir -p /tmp/t && node test/app/smoke.js /w/dist/jap_moonride /tmp/t'
 docker run --rm -v "$PWD:/w" -w /w node:8.16.0-alpine node test/app/screentouch.js
-# the service's PNG reader and relay, on Node 22 (relay_test needs 127.0.0.2: Linux)
+# the service's PNG reader and relay, on Node 22 (relay_test needs 127.0.0.2-4: Linux)
 docker run --rm --network none -v "$PWD:/w" -w /w/daemon node:22-alpine \
   sh -c 'node test/png.js && node test/relay_test.js'
 ```

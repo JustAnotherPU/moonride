@@ -3,8 +3,8 @@
 # Copyright (C) 2026 JustAnotherPU
 # Puts the Store release in dist/release/: the app package WITHOUT BMW's oap-sdk (the head unit generates that
 # module from a stock app), the service's tool artifact, the app icon and catalog.json. Upload every file of
-# that folder to the GitHub release named "catalog" (README.md, "Releasing"). jap-node22 and jap-tailscale come from
-# github.com/JustAnotherPU/mgu-apps. Build first:
+# that folder to the GitHub release named "catalog" (README.md, "Releasing"). jap-node22 and jap-wireproxy come from
+# github.com/JustAnotherPU/mgu-apps, iteriodev-tailscale from github.com/IterioDev/car-apps. Build first:
 #   python3 kit/tools/build.py jap_moonride && sh tools/jap-moonride/build.sh
 set -eu
 root=$(cd "$(dirname "$0")/.." && pwd)

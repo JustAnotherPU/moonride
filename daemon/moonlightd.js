@@ -49,7 +49,7 @@ const COVERS = process.env.MGU_COVERS || '/var/opt/jap-moonride/covers';
 // the app's card (210 x 315 on its 1600 px page) in screen px (the page is drawn 1920 px wide): drawn 1:1 there
 const COVER_W = 360, COVER_H = 540, COVER_END = '-' + COVER_W + 'x' + COVER_H + '.rgba';
 const COVER_GAP_MS = 300;
-const REMOTE_KBPS = +process.env.MGU_REMOTE_KBPS || 6000;   // the cap through Tailscale            // between two covers: the fetches yield to everything else
+const REMOTE_KBPS = +process.env.MGU_REMOTE_KBPS || 6000;   // the cap through the tunnel            // between two covers: the fetches yield to everything else
 
 const log = (...a) => console.error(new Date().toISOString(), ...a);
 // One journal line per 10 s of stream (jap-carlog keeps it): the sound's and the network's health, so a stutter can be traced afterwards.
@@ -99,13 +99,13 @@ function host() {
     if (!h) throw new Error('no host yet: pair first');
     return gs && gs.host === h ? gs : (gs = new GameStream({ host: h, dir: STATE }));
 }
-/** g.via: direct on the local network, else through Tailscale (relay.js). Probed again after 15 s. */
+/** g.via: direct on the local network, else through a tunnel (relay.js). Probed again after 15 s. */
 let reachT = 0;
 async function reach(g) {
     if (Date.now() - reachT < 15000 && (relay.target === g.host) === !!g.via) return g;
     reachT = Date.now();
     if (await relay.direct(g.host)) { relay.stop(); g.via = null; }
-    else { relay.start(g.host); g.via = relay.LOCAL; }
+    else { await relay.start(g.host); g.via = relay.LOCAL; }
     return g;
 }
 function ensureIdentity() {

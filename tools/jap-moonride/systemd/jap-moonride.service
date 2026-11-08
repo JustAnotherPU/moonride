@@ -21,8 +21,10 @@ Environment=MGU_BIN=/var/opt/jap-moonride/current/mgu-moonlight
 Environment=MGU_CTL=/run/jap-moonride/ctl.sock
 Environment=MGU_BT=/run/jap-moonride/bt.sock
 Environment=MGU_DECODER=msdk
-# the jap-tailscale tool's SOCKS5 server (127.0.0.1 only): reaches the PC through your tailnet off the local network
-Environment=MGU_SOCKS_PORT=1065
+# off the local network, the PC through the first of these SOCKS5 servers that reaches it (relay.js): jap-wireproxy
+# (mgu-apps, your WireGuard server), then IterioDev's Tailscale (iteriodev-tailscale, once its SOCKS5 is enabled).
+# Both are optional and listen on the head unit only.
+Environment="MGU_SOCKS=127.0.0.1:1065 127.0.0.2:1055"
 # the car's speakers through SmartX (the app routes the source with AudioManager); 64 ms = its 3 x 1024 frames
 Environment=MGU_AUDIO=alsa:plug:smartx:CarLifeMedia_CF_48_STEREO
 Environment=MGU_ALSA_US=64000

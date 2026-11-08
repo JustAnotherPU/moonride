@@ -18,7 +18,6 @@
  * The page is 1600 x 520 but where the kit runs the screen only y 38.. and x 12..1588 show (display.js
  * FULL.src), so nothing sits above TOP. Text is English and literal (no kit i18n).
  */
-const qr = require('./kit/qr');
 const W = 1600, H = 520, TOP = 38;
 // the home row: cards portrait 2:3, as the hosts' box art. On the whole screen ("fill" in app.json: no header, the
 // page from the top, 80 more px below its 520: m.extra) they are bigger, as moonlightd.js caches the art (x 1.2)
@@ -246,7 +245,7 @@ function home(cv, m) {
         cv.target(1446, py - 4, 52, 52, m.act.settings, 'settings', 26);
     }
     // the sheet takes the page: nothing behind it can be pressed (the daemon has no cancel; BACK leaves)
-    if (st.risk) { cv.targets.length = 0; riskSheet(cv, m); } else if (st.pin) { cv.targets.length = 0; pinSheet(cv, m); } else if (st.tsSheet && st.tsUrl) { cv.targets.length = 0; tsSheet(cv, m); }
+    if (st.risk) { cv.targets.length = 0; riskSheet(cv, m); } else if (st.pin) { cv.targets.length = 0; pinSheet(cv, m); }
 }
 function empty(cv, m) {
     const st = m.st, y = CARD.y, h = CARD.h;
@@ -282,13 +281,6 @@ function footer(cv, m) {
     // how to pick a card: the controller where the kit has it, else the HMI's bar buttons
     const hint = m.ring ? 'Next: choose · Open: play' : 'Turn: choose · Press: play';
     if (m.menu && m.st.apps.length && !m.st.pin) x = chip(cv, x, hint, (cx, cy) => cv.arc(cx, cy, 6, 9, 0, 360, '#ffffffd0'));
-    // Tailscale waits for its login (the 5G relay): the chip opens the QR code
-    if (m.st.tsUrl && (m.menu || m.st.offline)) {
-        const x0 = x;
-        x = chip(cv, x, 'Tailscale: sign in', (cx, cy) => cv.arc(cx, cy, 6, 9, 0, 360, C.orange), C.orange);
-        ring(cv, m, 'tslogin', x0, L.footY, x - x0 - 12, 40, 12);
-        cv.target(x0, L.footY, x - x0 - 12, 40, m.act.tslogin, 'tslogin', 12);
-    }
     if (m.live) {
         // streaming but GAME not in front (starting, stopping): Stop
         const label = m.st.state === 'launching' ? 'Starting… · Stop' : 'Stop the stream', w = cv.textWidth(label, 20, BOLD) + 58;
@@ -342,19 +334,6 @@ function riskSheet(cv, m) {
     wrap(cv, RISK, 26, w - 120).forEach((l, i) => cv.text(l, cx, y + 124 + i * 40, 26, C.dim2, { literal: true, align: 'center' }));
     button(cv, m, 'riskCancel', cx - 150, y + 370, 'Cancel', m.act.riskCancel, C.glass2);
     button(cv, m, 'riskAccept', cx + 150, y + 370, 'I accept', m.act.riskAccept, C.orange);
-}
-
-/* The jap-tailscale tool's login: the link as a QR code, for a phone signed in to the owner's Tailscale account */
-function tsSheet(cv, m) {
-    cv.fillRect(0, 0, W, H + (m.extra || 0), '#000000a8');
-    const x = 300, y = 40, w = 1000, h = 460, cx = x + w / 2;
-    cv.roundRect(x, y, w, h, 34, C.sheet);
-    cv.text('Connect Tailscale', cx, y + 58, 36, C.text, { literal: true, font: 'bold', align: 'center' });
-    cv.text('Scan this code with a phone signed in to your Tailscale account.', cx, y + 100, 24, C.dim, { literal: true, align: 'center' });
-    const side = (qr.encode(m.st.tsUrl).length + 8) * 6;    // the code and its 4-module quiet zone
-    qr.draw(cv, m.st.tsUrl, cx - side / 2, y + 122, 6);
-    cv.text(fit(cv, m.st.tsUrl, 22, w - 80, LIT), cx, y + 418, 22, C.link, { literal: true, align: 'center' });
-    cv.target(0, 0, W, H + (m.extra || 0), m.act.tslogin, 'tslogin', 0);
 }
 
 /* ---------- Gamepads ---------- */

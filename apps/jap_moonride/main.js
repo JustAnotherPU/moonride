@@ -235,18 +235,6 @@ mgu.run({
         }
         const live = () => st.state === 'launching' || st.state === 'streaming';
 
-        /* ---------- Tailscale (the jap-tailscale tool): its login link, shown as a QR code while it needs one ---------- */
-        const TSPUB = process.env.MGU_TAILSCALE_PUB || '/run/jap-tailscale/pub';
-        st.tsUrl = null; st.tsSheet = false;
-        function readTs() {
-            let u = '';
-            try { u = fs.readFileSync(TSPUB + '/login-url', 'utf8').trim(); } catch (e) { /* no tool, or logged in */ }
-            u = /^https:\/\/[!-~]+$/.test(u) && u.length <= 62 ? u : null;     // 62: what the QR code holds
-            if (u === st.tsUrl) return;
-            st.tsUrl = u; if (!u) st.tsSheet = false;
-            refresh();
-        }
-
         /* ---------- MAIN: what the page's targets (and the bar) do ---------- */
         let mode = 'home', menu = false, menuTimer = null, focus = null, first = 0, padSy = 0, dirty = true, padsLabel = null;
         function refresh() {
@@ -264,7 +252,6 @@ mgu.run({
                 refresh();
             },
             riskCancel: () => { st.risk = false; refresh(); },
-            tslogin: () => { st.tsSheet = !!st.tsUrl && !st.tsSheet; refresh(); },
             start: (a) => {
                 if (driving()) { st.error = parked.speed() === null ? 'Parked only: vehicle speed unreadable, start refused' : 'Parked only: start refused while the car is moving'; return refresh(); }
                 if (live()) { st.error = 'A stream is already running: stop it first'; return refresh(); }
@@ -639,7 +626,6 @@ mgu.run({
             if (!shown && ccu.restore && !ccu.on && Date.now() - ccu.t >= 2000) touchMode(false);   // a refused restore, again
         }
         setInterval(safe('sync', sync), 250);
-        setInterval(safe('tailscale', readTs), 5000); safe('tailscale', readTs)();
         if (ui.onFocus) ui.onFocus(safe('focus', () => sync()));
         refresh();
         log.info('moonlight app started');
