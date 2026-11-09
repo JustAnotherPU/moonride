@@ -16,8 +16,11 @@ rm -rf "$out" && mkdir -p "$out"
 tmp=$(mktemp -d); trap 'rm -rf "$tmp"' EXIT
 tar -xzf "$app" -C "$tmp"
 rm -rf "$tmp/package/node_modules/oap-sdk"; rmdir "$tmp/package/node_modules" 2>/dev/null || true
-if tar --version 2>/dev/null | grep -q bsdtar; then own='--uid 0 --gid 0 --uname root --gname root'; else own='--owner=0 --group=0 --numeric-owner'; fi
-(cd "$tmp" && tar $own -czf "$out/$(basename "$app")" package)
+# macOS bsdtar adds the extracted files' xattrs (com.apple.provenance) as pax headers, and the head unit's tar
+# refuses them: "Cannot restore extended attributes on this file system" (issue #1)
+if tar --version 2>/dev/null | grep -q bsdtar; then own='--uid 0 --gid 0 --uname root --gname root --no-xattrs --no-mac-metadata --no-acls --format ustar'; else own='--owner=0 --group=0 --numeric-owner --no-xattrs --no-acls --format=ustar'; fi
+(cd "$tmp" && COPYFILE_DISABLE=1 tar $own -czf "$out/$(basename "$app")" package)
+if gzip -dc "$out/$(basename "$app")" | grep -aq -E 'LIBARCHIVE\.xattr|SCHILY\.xattr|/\._'; then echo "release.sh: extended attributes in the package" >&2; exit 1; fi
 if tar -tzf "$out/$(basename "$app")" | grep -qi 'oap-sdk'; then echo "release.sh: the oap-sdk is still in the package" >&2; exit 1; fi
 # the local build's packages hold BMW's oap-sdk: only dist/release/ is ever uploaded, so they go
 rm -f "$app" "${app%.tgz}.mgu"
